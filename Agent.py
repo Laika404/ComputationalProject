@@ -4,3 +4,4 @@ class agent_car():
         loc = 0
         v = 0
         a = 0
+        length = 5
