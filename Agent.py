@@ -128,3 +128,5 @@ class VehicleAgent(object):
         eta = np.random.uniform(0,1)
         self.current_speed = max(0, v_ideal - self.b * eta)
         self.position += self.current_speed * dt
+        if road_length is not None:
+            self.position %= road_length
