@@ -4,54 +4,68 @@ import numpy as np
 from Agent import VehicleAgent
 
 
-class Model:
-    def __init__(self, num_agents: int, dt: float = 0.1) -> None:
-        self.agents: List[VehicleAgent] = []
+class Model(object):
+    def __init__(self, dt: float = 1.0, total_time: int = 2000, road_length: int = 2000) -> None:
         self.dt = dt
-        self.xs = []
-        self.vs = []
-        for i in range(num_agents):
-            self.agents.append(VehicleAgent(i * 15, 0, b=0.0))
-            self.xs.append([])
-            self.vs.append([])
-
-    def reset(self) -> None:
-        self.__init__(len(self.agents), self.dt)
+        self.total_time = total_time
+        self.road_length = road_length
+        self.road_length_km = self.road_length / 1000
+        self.density_values = np.linspace(0, 140, 10)
+        self.flow_results = []
+        self.speed_results = []
 
     def run(self) -> None:
-        t = 0
-        for _ in range(1000):
-            print(t)
-            # HACK(Seb): Hardcode the leader to brake at t=50 to emulate Fig 6C
-            if np.isclose(t, 50):
-                self.agents[-1].current_speed = 0
-            for i in range(len(self.agents) - 1):
-                self.xs[i].append(self.agents[i].position)
-                self.vs[i].append(self.agents[i].current_speed)
+        for density in self.density_values:
+            # N is amount of vehicles
+            N = int(density * self.road_length_km)
+            initial_positions = np.sort(np.random.uniform(0, self.road_length, N))
+            print(initial_positions)
+            
+            vehicles: List[VehicleAgent] = [
+                VehicleAgent(pos, 30) for pos in initial_positions
+            ]
+            
+            total_crossings = 0
 
-                gap = self.agents[i + 1].position - self.agents[i].position
-                leader_speed = self.agents[i + 1].current_speed
-                leader_acceleration = self.agents[i + 1].acceleration
-                self.agents[i].update_state(
-                    gap, leader_speed, leader_acceleration, self.dt, 2000
-                )
+            for t in range(int(self.total_time / self.dt)):
+                vehicles.sort(key = lambda vehicle: vehicle.position)
 
-            self.xs[-1].append(self.agents[-1].position)
-            self.vs[-1].append(self.agents[-1].current_speed)
-            # HACK(Seb): I've got no better idea to let the leader know that it's not following anyone.
-            self.agents[-1].update_state(10000000, 100, 100, self.dt, 2000)
+                for i, vehicle in enumerate(vehicles):
+                    leader = vehicles[(i + 1) % N]
+                    gap = (leader.position - vehicle.position) % self.road_length
+                    gap = max(0, gap - leader.length)
 
-            t += self.dt
+                    vehicle.update_state(
+                        gap=gap,
+                        leader_speed=leader.current_speed,
+                        leader_acceleration=leader.acceleration,
+                        dt=self.dt,
+                        road_length=self.road_length
+                    )
 
+                    if vehicle.position >= self.road_length:
+                        vehicle.position -= self.road_length
+                        total_crossings += 1
+
+            flow = (total_crossings / self.total_time) * 3600
+            mean_speed = np.mean([vehicle.current_speed for vehicle in vehicles])
+            
+            self.flow_results.append(flow)
+            self.speed_results.append(mean_speed)
+            
     def plot(self, stat: str = "position", out_file=None) -> None:
-        for i in range(len(self.agents)):
-            if stat == "position":
-                plt.plot(np.arange(1000) * self.dt, self.xs[i])
-            elif stat == "velocity":
-                plt.plot(np.arange(1000) * self.dt, self.vs[i])
-                # plt.plot(np.arange(999) * self.dt, np.diff(self.xs[i]) / self.dt)
-            else:
-                raise ValueError(f"Unrecognised statistic '{stat}'")
+        if stat == "position":
+            plt.plot(self.density_values, self.flow_results)
+            plt.xlabel('density (veh/km)')
+            plt.ylabel('flow (veh/h)')
+
+        elif stat == "velocity":
+            plt.plot(self.density_values, self.speed_results)
+            plt.xlabel('density (veh/km)')
+            plt.ylabel('mean speed (m/s)')
+
+        else:
+            raise ValueError(f"Unrecognised statistic '{stat}'")
 
         if out_file is None:
             plt.show()
@@ -59,7 +73,6 @@ class Model:
             plt.savefig(out_file)
 
 
-m = Model(6)
+m = Model()
 m.run()
-m.plot()
-m.plot(stat="velocity")
+m.plot(stat="position")
