@@ -14,12 +14,13 @@ class Model(object):
         self.flow_results = []
         self.speed_results = []
 
+
     def run(self) -> None:
         for density in self.density_values:
             # N is amount of vehicles
             N = int(density * self.road_length_km)
-            initial_positions = np.sort(np.random.uniform(0, self.road_length, N))
-            print(initial_positions)
+            initial_positions = np.sort(np.random.uniform(0, self.road_length - (N * 5), N))
+            initial_positions += np.arange(N) * 5  # Ensure minimum gaps of 5m by adding vehicle length
             
             vehicles: List[VehicleAgent] = [
                 VehicleAgent(pos, 30) for pos in initial_positions
@@ -40,7 +41,6 @@ class Model(object):
                         leader_speed=leader.current_speed,
                         leader_acceleration=leader.acceleration,
                         dt=self.dt,
-                        road_length=self.road_length
                     )
 
                     if vehicle.position >= self.road_length:
@@ -52,6 +52,7 @@ class Model(object):
             
             self.flow_results.append(flow)
             self.speed_results.append(mean_speed)
+            
             
     def plot(self, stat: str = "position", out_file=None) -> None:
         if stat == "position":
@@ -75,4 +76,4 @@ class Model(object):
 
 m = Model()
 m.run()
-m.plot(stat="position")
+m.plot(stat="velocity")

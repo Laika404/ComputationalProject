@@ -107,12 +107,13 @@ class VehicleAgent(object):
 
         return 0
 
+
     def acceleration_rate(self, vF):
         if vF <= 12.19:
             aF = 1.1
 
         elif vF > 12.19:
-            aF = 0.39
+            aF = 0.37
 
         return aF
 
@@ -121,7 +122,7 @@ class VehicleAgent(object):
         v_safe = leader_speed + ((gap - leader_speed*reaction_time) / (reaction_time + ((self.current_speed + leader_speed) / (2 * self.a_max))))
         return v_safe
 
-    def update_state(self, gap, leader_speed, leader_acceleration, dt, road_length):
+    def update_state(self, gap, leader_speed, leader_acceleration, dt):
         self.compute_decision(gap, leader_speed, leader_acceleration)
         v_safe = self.compute_safe_speed(gap, leader_speed)
         v_ideal = min(self.max_speed, self.current_speed + self.acceleration * dt, v_safe)
