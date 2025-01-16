@@ -23,7 +23,7 @@ def get_lane_radius(lane_index):
 # LOAD CSV DATA
 ########################################
 df = pd.read_csv("data.csv")
-# CSV columns expected: car_id, timestep, alpha, lane, speed (speed optional, can be used for coloring)
+# CSV columns expected: car_id, timestep, alpha, lane, speed
 
 # Get unique timesteps in sorted order
 timesteps = sorted(df["timestep"].unique())
@@ -101,33 +101,18 @@ def update(frame):
         x_vals.append(x)
         y_vals.append(y)
 
-        # (Optional) color by speed
-        if "speed" in row:
-            # e.g., map speed to color from blue (slow) to red (fast)
-            # we'll just store the speed in 'colors' for now
-            # and use a colormap below if desired
-            colors.append(row["speed"])
-        else:
-            # if no speed info, just use a single color
-            colors.append(1.0)
+        colors.append(row["speed"])
 
     # Update scatter: need an Nx2 array for offsets
     scat.set_offsets(np.column_stack((x_vals, y_vals)))
 
-    # If you're coloring by speed, you can do something like:
-    if "speed" in df.columns:
-        # Let's define a color range. If speeds range e.g. from 0 to 10:
-        cmap = plt.cm.get_cmap("coolwarm")
-        norm = plt.Normalize(vmin=df["speed"].min(), vmax=df["speed"].max())
-        scat.set_color(cmap(norm(colors)))
-    else:
-        # Single color
-        scat.set_color("red")
-
+    cmap = plt.cm.get_cmap("coolwarm")
+    norm = plt.Normalize(vmin=df["speed"].min(), vmax=df["speed"].max())
+    scat.set_color(cmap(norm(colors)))
     return scat,
 
 ########################################
-# 5. CREATE THE ANIMATION
+# CREATE THE ANIMATION
 ########################################
 ani = animation.FuncAnimation(
     fig,
@@ -139,6 +124,8 @@ ani = animation.FuncAnimation(
 )
 
 plt.show()
+
+ani.save(filename="pillow_example.gif", writer="pillow")
 
 # If you want to save the animation to an MP4 or GIF, you can do:
 # ani.save("circle_traffic.mp4", writer="ffmpeg", fps=5)
