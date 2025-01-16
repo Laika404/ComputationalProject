@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
+import matplotlib as mpl
 
 ########################################
 # PARAMETERS
@@ -32,6 +33,14 @@ timesteps = sorted(df["timestep"].unique())
 # SET UP MATPLOTLIB FIGURE
 ########################################
 fig, ax = plt.subplots()
+min_speed = df["speed"].min()
+max_speed = df["speed"].max()
+cmap = plt.colormaps.get_cmap("coolwarm")
+norm = mpl.colors.Normalize(vmin=min_speed, vmax=max_speed)
+sm = mpl.cm.ScalarMappable(norm=norm, cmap=cmap)
+cbar = fig.colorbar(sm, ax=ax, orientation="vertical", fraction=0.05, pad=0.05)
+cbar.set_label("Speed (m/s)")
+
 
 # For a nice equal aspect ratio (so circle looks circular)
 ax.set_aspect("equal", adjustable="box")
@@ -58,7 +67,7 @@ for lane_i in range(max_lane + 1):
 scat = ax.scatter([], [], c="red", s=20, alpha=0.8)
 
 ########################################
-# 4. HELPER FUNCTIONS
+# HELPER FUNCTIONS
 ########################################
 
 def alpha_to_xy(alpha, lane):
@@ -126,6 +135,3 @@ ani = animation.FuncAnimation(
 plt.show()
 
 ani.save(filename="pillow_example.gif", writer="pillow")
-
-# If you want to save the animation to an MP4 or GIF, you can do:
-# ani.save("circle_traffic.mp4", writer="ffmpeg", fps=5)
