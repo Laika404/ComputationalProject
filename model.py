@@ -2,98 +2,192 @@ from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
 from Agent import VehicleAgent
+from Track import Lane
+import copy
+import csv
+
+max_speed = 35
+desired_speed = 30
+TP = 1.2
+a_normal = 3.05
+a_max = 6.04
+b = 0.2
 
 
 class Model(object):
-    def __init__(self, dt: float = 1.0, total_time: int = 2000, road_length: int = 2000) -> None:
+    
+    static_param = {"max_speed": 35, "desired_speed": 30, "TP": 1.2,
+                  "a_normal": 3.05, "a_max": 6.04, "b": 0.2}
+
+
+    
+    
+    # initialize the model
+    # car_spread = ("even", "random")
+    # init_speed_var = [0, 1] the percentage
+    def __init__(self, dt: float = 1.0, max_time: int = 2000, road_length: int = 2000, density = 10,  car_spread = "random", init_speed_var = 0.2, param = {}, var_param = {}) -> None:
+        
+        # define a subclass with parameters specific to this simulation
+        class Agent(VehicleAgent):
+            dt = 1
+        self.Agent = Agent
+
+        # simulation parameters
         self.dt = dt
-        self.total_time = total_time
+        self.Agent.dt = dt      
         self.road_length = road_length
-        self.road_length_km = self.road_length / 1000
-        self.density_values = np.linspace(0, 120, 10)
-        self.total_runs = 20 # In the paper they also did 20 runs for each density
-        self.flow_results = [[] for _ in range(self.total_runs)]
-        self.speed_results = [[] for _ in range(self.total_runs)]
+        self.density = density
+        self.car_spread = car_spread
+        self.init_speed_var = init_speed_var
 
-
-    def run(self, idx) -> None:
-        for density in self.density_values:
-            # N is amount of vehicles
-            N = int(density * self.road_length_km)
-            initial_positions = np.sort(np.random.uniform(0, self.road_length - (N * 5), N))
-            initial_positions += np.arange(N) * 5  # Ensure minimum gaps of 5m by adding vehicle length
-            
-            vehicles: List[VehicleAgent] = [
-                VehicleAgent(pos, np.random.uniform(0,35)) for pos in initial_positions
-            ]
-            
-            total_crossings = 0
-
-            for t in range(int(self.total_time / self.dt)):
-                vehicles.sort(key = lambda vehicle: vehicle.position)
-
-                for i, vehicle in enumerate(vehicles):
-                    leader = vehicles[(i + 1) % N]
-                    gap = (leader.position - vehicle.position) % self.road_length
-                    gap = max(0, gap - leader.length)
-
-                    vehicle.update_state(
-                        gap=gap,
-                        leader_speed=leader.current_speed,
-                        leader_acceleration=leader.acceleration,
-                        dt=self.dt,
-                    )
-
-                    if vehicle.position >= self.road_length:
-                        vehicle.position -= self.road_length
-                        total_crossings += 1
-
-            flow = total_crossings
-            mean_speed = np.mean([vehicle.current_speed for vehicle in vehicles])
-            
-            self.flow_results[idx].append(flow)
-            self.speed_results[idx].append(mean_speed)
-            
-            
-    def plot(self, stat: str = "position", out_file=None) -> None:
-        if stat == "position":
-            for idx in range(self.total_runs): # Run the simulation 20 times
-                self.run(idx)
-            
-                # Scatter plot for current run
-                plt.scatter(self.density_values, self.flow_results[idx], alpha=0.5, color='gray')
+        self.cur_time = None
+        self.cur_step = None
+        self.max_time = max_time
         
-            # average flow
-            avg_flow = np.mean(self.flow_results, axis=0) if isinstance(self.flow_results[0], list) else self.flow_results
-            plt.plot(self.density_values, avg_flow, color='black', label='Mean Flow')
-            plt.xlabel('Density (veh/km)')
-            plt.ylabel('Flow (veh/h)')
-            plt.title('The relationship between flow and density')
-            plt.legend()
+        # parameters for the car
+        self.param = None
+        # do parameters vary
+        self.var_param = None
+        self.new_parameters(param)
 
-        elif stat == "velocity":
-            for idx in range(20): # Run the simulation 20 times
-                self.run(idx)
-            
-                # Scatter plot for current run
-                plt.scatter(self.density_values, self.speed_results[idx], alpha=0.5, color='gray')
+        # agent initializing
+        self.agent_list = None
+
+        # track initialization
+        self.track = Lane()
         
-            # average speed
-            avg_speed = np.mean(self.speed_results, axis=0) if isinstance(self.speed_results[0], list) else self.speed_results
-            plt.plot(self.density_values, avg_speed, color='black', label='Mean Speed')
-            plt.xlabel('Density (veh/km)')
-            plt.ylabel('Mean Speed (m/s)')
-            plt.title('The relationship between mean-speed and density')
-            plt.legend()
+        
+        self.time_data = []
+        self.cros_data = []
+        self.mean_speed_data = []
+        
 
-        else:
-            raise ValueError(f"Unrecognised statistic '{stat}'")
+    # gives the model new parameters. Changes self.param 
+    def new_parameters(self, param: dict, var_param: dict[bool]={}) -> None:
+        new_param = {}
+        for key in Model.static_param.keys():
+            if (key in param):
+                new_param[key] = param[key]
+            else:
+                if (self.param == None):
+                    new_param[key] = Model.static_param[key]
+                else:
+                    new_param[key] = self.param[key]
+        
+        new_var_param = {}
+        for key in Model.static_param.keys():
+            if (key in var_param):
+                new_var_param[key] = var_param[key]
+            else:
+                if (self.var_param == None):
+                    new_var_param[key] = False
+                else:
+                    new_var_param[key] = self.var_param[key]
+        
+        self.param = new_param
+        self.var_param = new_var_param
+    
+    # a single step
+    def step(self):
+        self.track.update_cars_lane()
 
-        if out_file is None:
-            plt.show()
-        else:
-            plt.savefig(out_file)
+        self.cur_step += 1
+        self.cur_time += self.dt
 
+        # new data
+        self.time_data.append(self.cur_time)
+        self.cros_data.append(self.track.crossings)
+        self.mean_speed_data.append(self.track.get_mean_speed())
+        
 
-model = Model()
-model.plot(stat="velocity")
+    def mult_step(self, amount):
+        for i in range(amount):
+            self.step()
+
+    def run_sim(self):
+        self.init_sim()
+        while True:
+            self.step()
+            if (self.cur_time>=self.max_time):
+                break
+        
+
+    def init_sim(self, new_agents = True):
+        # reset track if needed
+        self.track.remove_all_car()
+        self.track.reset_crossing()
+        # amount of cars based on density
+        N = int(self.density*(self.road_length/1000))
+        print(N)
+
+        # new agents only will be added if
+        if new_agents:
+            self.init_agents(N)
+        
+        # initialize different speeds
+        # init_speeds = np.random.uniform(self.param["desired_speed"]*(1-self.init_speed_var),
+        #                   self.param["desired_speed"]*(1+self.init_speed_var), N)
+        init_speeds = np.random.uniform(0, 35, N)
+
+        # initialize positions, spread based on parameters
+        if self.car_spread == "even":
+            init_pos = np.linspace(0, self.road_length, N)
+        elif self.car_spread == "random":
+            init_pos = np.sort(np.random.uniform(0, self.road_length - (N * 5), N))
+            init_pos += np.arange(N) * 5  # Ensure minimum gaps of 5m by adding vehicle length
+
+        # add speed and position data to the agents
+        for i in range(N):
+            agent = self.agent_list[i]
+            agent.current_speed =init_speeds[i]
+            agent.position = init_pos[i]
+
+        # bind cars to the track
+        self.track.add_all_car(self.agent_list)
+
+        self.cur_step = 0
+        self.cur_time = 0
+
+        # reset data
+        self.time_data = []
+        self.cros_data = []
+        self.mean_speed_data = []
+        # add data for step 0
+        self.time_data.append(self.cur_time)
+        self.cros_data.append(self.track.crossings)
+        self.mean_speed_data.append(self.track.get_mean_speed())
+
+    
+    # the function makes new agents
+    def init_agents(self, amount) -> List:
+        self.agent_list = [self.Agent() for i in range(amount)]
+
+        # set agent parameters
+        for key in self.param.keys():
+            value = self.param[key]
+            if self.var_param[key]:
+                value_list = np.random.normal(value, value*0.1, amount)
+            else:
+                value_list = np.full(amount, value)
+            for i in range(amount):
+                self.agent_list[i].change_parameter(key, value_list[i])
+    
+    def get_final_data(self):
+        return {"time": self.time_data[-1], "cross": self.cros_data[-1], "mean_speed": self.mean_speed_data[-1]}
+
+    def get_all_data(self):
+        return {"time": copy.copy(self.time_data), "cross": copy.copy(self.cros_data), "mean_speed": copy.copy(self.mean_speed_data)}
+
+    def get_all_agent_data(self, filename: str):
+        
+        with open(filename, mode="w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(["id","timestep","alpha","lane","speed"])
+            car_id = 0
+            for agent in self.agent_list:
+                print(car_id)
+                for i in range(len(self.time_data)):
+                    writer.writerow([car_id, int(self.time_data[i]), agent.pos_data[i], 0, agent.speed_data[i]])
+                if (car_id == 1111):
+                    break
+                car_id +=1
