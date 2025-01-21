@@ -4,6 +4,19 @@ import matplotlib.pyplot as plt
 # car object that behaves like a car
 class VehicleAgent(object):
     def __init__(self, position, current_speed, desired_speed=30, max_speed=35, length=5, a_normal=3.05, a_max=6.04, b=0.2, TP=1.2):
+        """
+        The parameters of the vehicle agent are:
+        - position: the range is [0, 2000> and indicates the position of the vehicle on the lane
+        - current speed: the current speed of the vehicle in m/s
+        - desired speed: the desired speed of the vehicle, 30 m/s
+        - max speed: the maximum speed of the vehicle, 35 m/s
+        - length: the length of the vehicle, which is 5m
+        - a normal: the normal acceleration, used in specific scenarios (refer to decceleration_rate())
+        - a max: the maximum acceleration, used in specific scenarios (refer to decceleration_rate())
+        - b: the noise of the model, accounting for the real world environment
+        - TP: the time headway the follower prefers to the vehicle in front
+        """
+
         self.position = position
         self.current_speed = current_speed
         self.desired_speed = desired_speed
@@ -123,6 +136,12 @@ class VehicleAgent(object):
         return v_safe
 
     def update_state(self, gap, leader_speed, leader_acceleration, dt):
+        """
+        Updates the state of the follower (current vehicle), which
+        depends on the speed and acceleration of the leader (car in front), 
+        and the gap between them.
+        """
+
         self.compute_decision(gap, leader_speed, leader_acceleration)
         v_safe = self.compute_safe_speed(gap, leader_speed)
         v_ideal = min(self.max_speed, self.current_speed + self.acceleration * dt, v_safe)
