@@ -93,7 +93,7 @@ class Model(object):
             plt.legend()
 
         elif stat == "velocity":
-            for idx in range(20): # Run the simulation 20 times
+            for idx in range(self.total_runs): # Run the simulation 20 times
                 self.run(idx)
             
                 # Scatter plot for current run
@@ -116,5 +116,7 @@ class Model(object):
             plt.savefig(out_file)
 
 
-model = Model()
-model.plot(stat="position")
+if __name__ == '__main__':
+    # when you run "python model.py" you land here: the simulation will run
+    model = Model()
+    model.plot(stat="position")

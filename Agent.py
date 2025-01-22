@@ -1,5 +1,5 @@
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 # car object that behaves like a car
 class VehicleAgent(object):
