@@ -1,13 +1,11 @@
 import unittest
 from Agent import VehicleAgent
 
+
 class AgentTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(AgentTest, self).__init__(*args, **kwargs)
-        self.agent = VehicleAgent(
-            position=1000,
-            current_speed=25
-        )
+        self.agent = VehicleAgent(position=1000, current_speed=25)
 
     def test_compute_decision(self):
         """
@@ -17,13 +15,11 @@ class AgentTest(unittest.TestCase):
         gap < 6 * vF(speed of follower) and delta > 0 and vL(speed of leader) >=
         vF, because vF = 25 m/s, vL = 25 m/s, gap_desire = vF * TP = 25 * 1.2 = 30 m, and
         therefore delta = 100 - 30 = 70m and vL >= vF also holds. So we should return the
-        acceleration rate and that should be 0.37 as vF > 12.19 m/s. 
+        acceleration rate and that should be 0.37 as vF > 12.19 m/s.
         """
 
         decision = self.agent.compute_decision(
-            gap=100,
-            leader_speed=25,
-            leader_acceleration=0.37
+            gap=100, leader_speed=25, leader_acceleration=0.37
         )
 
         acceleration_decision = self.agent.acceleration
@@ -38,8 +34,8 @@ class AgentTest(unittest.TestCase):
         scenario, namely: 1) vF is not bigger than the desired speed. 2) gap - gap_desire
         is not equal to 0. 3) gap - gap_desire is not lower than 0. 4) gap - gap_desire is
         indeed bigger than 0, but vL is not smaller or equal than vF, so we know directly
-        that this condition also does not hold. So the base case will be returned: 
-        decceleration_rate = 0 m/s^2. 
+        that this condition also does not hold. So the base case will be returned:
+        decceleration_rate = 0 m/s^2.
         """
 
         vF = 25
@@ -49,11 +45,7 @@ class AgentTest(unittest.TestCase):
         gap_desire = 25 * 1.2
 
         decceleration_rate = self.agent.decceleration_rate(
-            vF=vF,
-            vL=vL,
-            aL=aL,
-            gap=100,
-            gap_desire=gap_desire
+            vF=vF, vL=vL, aL=aL, gap=100, gap_desire=gap_desire
         )
 
         self.assertEqual(decceleration_rate, 0)
@@ -88,12 +80,13 @@ class AgentTest(unittest.TestCase):
         leader_speed = 25
 
         v_safe = self.agent.compute_safe_speed(
-            gap=gap,
-            leader_speed=leader_speed
+            gap=gap, leader_speed=leader_speed
         )
 
-        self.assertAlmostEqual(v_safe, 39.59, delta=0.1) # within a standard deviation of 0.1 we find it OK
+        self.assertAlmostEqual(
+            v_safe, 39.59, delta=0.1
+        )  # within a standard deviation of 0.1 we find it OK
 
 
-if __name__ == '__main__':
-    unittest.main() # run the tests
+if __name__ == "__main__":
+    unittest.main()  # run the tests
