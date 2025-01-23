@@ -1,12 +1,45 @@
+import numpy as np
+from Agent import VehicleAgent
+
+
 class Track:
 
     def __init__(self, lane_count = 2, length=2000):
-        self.lanes_count = 2
+        self.length = length
+        self.lanes_count = lane_count
         # most right lane == 0 and is the slowest lane
         self.lanes_list = [[] for _ in range(lane_count)]
 
-    def init_cars(self, density=10):
-        pass
+    def init_cars(self, density=10, equal_lanes = False):
+        N_cars = int((self.length/1000)*density)
+        if equal_lanes:
+            split_points = np.linspace(0, N_cars, self.lanes_count+1)[1:-1]
+        else:
+            split_points = np.sort(np.random.uniform(0, N_cars, self.lanes_count - 1))
+        
+        try:
+            split_points = int(split_points)
+        except:
+            split_points = split_points.astype(int)
+        
+        past_amount = 0
+        lane = 0
+        for total in split_points:
+            self.lanes_list[lane] = self.populate_lane(total - past_amount)
+            past_amount = total
+            lane += 1
+
+
+    def populate_lane(self, N):
+        print(N)
+        initial_positions = np.sort(np.random.uniform(0, self.length - (N * 5), N))
+        initial_positions += np.arange(N) * 5  # Ensure minimum gaps of 5m by adding vehicle length
+
+        initial_speeds = np.random.uniform(0, 35, N)
+        vehicle_list = [VehicleAgent(initial_positions[i], initial_speeds[i]) for i in range(N)]
+        return vehicle_list
+
+
 
     def calculate_next_state(self):
         for lane in self.lanes_list:
@@ -40,3 +73,9 @@ class Track:
         # returns are syntaxed as
         # dict(lane: tuple(front_car, back_car))
         pass  
+
+
+bab = Track(lane_count=5)
+print(bab.lanes_count)
+bab.init_cars(density=100, equal_lanes=False)
+print(len(bab.lanes_list[0]))
