@@ -1,8 +1,5 @@
 import unittest
-import numpy as np
 from Agent import VehicleAgent
-
-np.random.seed(1) # we need to make it deterministic for the unit tests
 
 class AgentTest(unittest.TestCase):
     def __init__(self, *args, **kwargs):
