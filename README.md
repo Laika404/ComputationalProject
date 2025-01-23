@@ -13,6 +13,7 @@ We use Python 3.10 along with the following libaries:
 - NumPy
 - Matplotlib
 - Pandas
+- unittest
 These may be installed manually with pip or through Anaconda. To automatically
 install them in a `venv` you can use the following commands:
 ```sh
