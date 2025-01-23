@@ -28,6 +28,9 @@ class VehicleAgent(object):
         self.TP = TP
         self.acceleration = 0
 
+    def __lt__(self, other):
+        return self.position < other.position
+
     def compute_decision(self, gap, leader_speed, leader_acceleration):
         """
         The Decision Tree. Returns the decision: accelerate, 
@@ -135,7 +138,7 @@ class VehicleAgent(object):
         v_safe = leader_speed + ((gap - leader_speed*reaction_time) / (reaction_time + ((self.current_speed + leader_speed) / (2 * self.a_max))))
         return v_safe
 
-    def update_state(self, gap, leader_speed, leader_acceleration, dt):
+    def calculate_next_state(self, gap, leader_speed, leader_acceleration, dt):
         """
         Updates the state of the follower (current vehicle), which
         depends on the speed and acceleration of the leader (car in front), 
@@ -146,5 +149,8 @@ class VehicleAgent(object):
         v_safe = self.compute_safe_speed(gap, leader_speed)
         v_ideal = min(self.max_speed, self.current_speed + self.acceleration * dt, v_safe)
         eta = np.random.uniform(0,1)
-        self.current_speed = max(0, v_ideal - self.b * eta)
+        self.next_speed = max(0, v_ideal - self.b * eta)
+
+    def update_state(self, dt):
+        self.current_speed = self.next_speed
         self.position += self.current_speed * dt
