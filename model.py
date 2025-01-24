@@ -1,7 +1,6 @@
-from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
-from Agent import VehicleAgent
+from track_interface import Track
 
 
 class Model(object):
@@ -31,40 +30,24 @@ class Model(object):
 
         for density in self.density_values:
             # N is amount of vehicles
-            N = int(density * self.road_length_km)
-            initial_positions = np.sort(np.random.uniform(0, self.road_length - (N * 5), N))
-            initial_positions += np.arange(N) * 5  # Ensure minimum gaps of 5m by adding vehicle length
-            
-            vehicles: List[VehicleAgent] = [
-                VehicleAgent(pos, np.random.uniform(0,35)) for pos in initial_positions # speed is initialied at random, must be between 0 and max speed = 35
-            ]
-            
+            track = Track(lane_count = 1, length = self.road_length)
+            track.init_cars(density)
+
             total_crossings = 0 # count the total crossings at a fixed reference point in time
 
-            for t in range(int(self.total_time / self.dt)):
-                vehicles.sort(key = lambda vehicle: vehicle.position)
+            for _ in range(int(self.total_time / self.dt)):
+                track.calculate_next_state()
+                track.update_state()
 
-                for i, vehicle in enumerate(vehicles):
-                    leader = vehicles[(i + 1) % N]
-                    gap = (leader.position - vehicle.position) % self.road_length
-                    gap = max(0, gap - leader.length)
-
-                    # update the state of the current vehicle(the follower)
-                    vehicle.update_state(
-                        gap=gap,
-                        leader_speed=leader.current_speed,
-                        leader_acceleration=leader.acceleration,
-                        dt=self.dt,
-                    )
-
-                    # if the vehicle's traveled distance is > 2000m then we wrap around the road
-                    # which is called the periodic boundary condition.
-                    if vehicle.position >= self.road_length:
-                        vehicle.position -= self.road_length
-                        total_crossings += 1
+                for lane in track.lanes_list:
+                    for vehicle in lane:
+                        # Periodic boundary condition
+                        if vehicle.position >= self.road_length:
+                            vehicle.position -= self.road_length
+                            total_crossings += 1
 
             flow = total_crossings
-            mean_speed = np.mean([vehicle.current_speed for vehicle in vehicles])
+            mean_speed = np.mean([veh.current_speed for veh in np.array(track.lanes_list).flatten()])
             
             self.flow_results[idx].append(flow)
             self.speed_results[idx].append(mean_speed)

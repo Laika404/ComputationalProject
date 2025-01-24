@@ -5,7 +5,7 @@ from Agent import VehicleAgent
 class Track:
 
     def __init__(self, lane_count = 2, length=2000, dt=1.0):
-        self.lanes_count = 2
+        self.lanes_count = lane_count
         # Rightmost lane has index 0 and is the slow lane.
         self.lanes_list = [[] for _ in range(lane_count)]
         self.length = length
@@ -31,7 +31,6 @@ class Track:
             lane += 1
 
     def populate_lane(self, N):
-        print(N)
         initial_positions = np.sort(np.random.uniform(0, self.length - (N * 5), N))
         initial_positions += np.arange(N) * 5  # Ensure minimum gaps of 5m by adding vehicle length
 
@@ -53,7 +52,7 @@ class Track:
 
     def update_state(self):
         for lane in self.lanes_list:
-            for vehicle in self.lanes_list:
+            for vehicle in lane:
                 vehicle.update_state(self.dt)
 
     def switch_lane(self, lane, position, count=0):
