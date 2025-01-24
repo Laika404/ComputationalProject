@@ -13,15 +13,19 @@ class Track:
 
     def init_cars(self, density=10, equal_lanes = False):
         N_cars = int((self.length/1000)*density)
+        cars_per_lane = N_cars // self.lanes_count
+
+        for i in range(self.lanes_count):
+            self.lanes_list[i] = self.populate_lane(cars_per_lane)
+
+        return
+
         if equal_lanes:
             split_points = np.linspace(0, N_cars, self.lanes_count+1)[1:-1]
         else:
             split_points = np.sort(np.random.uniform(0, N_cars, self.lanes_count - 1))
 
-        try:
-            split_points = int(split_points)
-        except:
-            split_points = split_points.astype(int)
+        split_points = split_points.astype(int)
 
         past_amount = 0
         lane = 0
@@ -40,9 +44,11 @@ class Track:
 
     def calculate_next_state(self):
         for i, lane in enumerate(self.lanes_list):
+            lane.sort()
             for vehicle in lane:
                 leader = self.car_in_front(i, vehicle.position)
                 gap = (leader.position - vehicle.position) % self.length
+                gap = max(0, gap - leader.length)
                 vehicle.calculate_next_state(
                     gap,
                     leader.current_speed,
@@ -66,20 +72,28 @@ class Track:
     def car_in_front(self, lane, position):
         """
         Returns the car in front of the one at a certain position in the lane,
-        or ``None`` if the lane is empty.
+        or ``None`` if the lane is empty or there is no car with the specified values.
         """
-        if len(self.lanes_list[lane]) == 0:
+        lane = self.lanes_list[lane]
+        if len(lane) == 0:
             return None
-        return min(veh for veh in self.lanes_list[lane] if veh.position > position)
+        for i, veh in enumerate(lane):
+            if veh.position == position:
+                return lane[(i + 1) % len(lane)]
+        return None
 
     def car_in_back(self, lane, position):
         """
         Returns the car behind the one at a certain position in the lane,
-        or ``None`` if the lane is empty.
+        or ``None`` if the lane is empty or there is no car with the specified values.
         """
-        if len(self.lanes_list[lane]) == 0:
+        lane = self.lanes_list[lane]
+        if len(lane) == 0:
             return None
-        return max(veh for veh in self.lanes_list[lane] if veh.position < position)
+        for i, veh in enumerate(lane):
+            if veh.position == position:
+                return lane[(i - 1) % len(lane)]
+        return None
 
     def closest_cars_sides(self, cur_lane, position):
         """
