@@ -172,6 +172,6 @@ class VehicleAgent(object):
         v_ideal = min(
             self.max_speed, self.current_speed + self.acceleration * dt, v_safe
         )
-        eta = np.random.uniform(0, 1)
+        eta = np.random.rand()
         self.current_speed = max(0, v_ideal - self.b * eta)
         self.position += self.current_speed * dt
