@@ -72,28 +72,30 @@ class Track:
     def car_in_front(self, lane, position):
         """
         Returns the car in front of the one at a certain position in the lane,
-        or ``None`` if the lane is empty or there is no car with the specified values.
+        or ``None`` if the lane is empty.
+        This function assumes the lane is sorted.
         """
         lane = self.lanes_list[lane]
         if len(lane) == 0:
             return None
         for i, veh in enumerate(lane):
-            if veh.position == position:
-                return lane[(i + 1) % len(lane)]
-        return None
+            if veh.position > position:
+                return lane[i]
+        return lane[0]
 
     def car_in_back(self, lane, position):
         """
         Returns the car behind the one at a certain position in the lane,
-        or ``None`` if the lane is empty or there is no car with the specified values.
+        or ``None`` if the lane is empty.
+        This function assumes the lane is sorted.
         """
         lane = self.lanes_list[lane]
         if len(lane) == 0:
             return None
-        for i, veh in enumerate(lane):
-            if veh.position == position:
-                return lane[(i - 1) % len(lane)]
-        return None
+        for i, veh in reversed(list(enumerate(lane))):
+            if veh.position < position:
+                return lane[i]
+        return lane[-1]
 
     def closest_cars_sides(self, cur_lane, position):
         """
