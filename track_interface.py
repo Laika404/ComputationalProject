@@ -42,6 +42,17 @@ class Track:
         vehicle_list = [VehicleAgent(initial_positions[i], initial_speeds[i]) for i in range(N)]
         return vehicle_list
 
+    def lane_switches(self):
+        for i, lane in enumerate(self.lanes_list):
+            lane.sort()
+            for vehicle in lane:
+                front = self.car_in_front(i, vehicle.position)
+                sides = self.closest_cars_sides(i, vehicle.position)
+                left = sides[i - 1]
+                right = sides[i + 1]
+                count = vehicle.lane_switch(front, left, right, self.length)
+                self.switch_lane(i, vehicle.position, count)
+
     def calculate_next_state(self):
         for i, lane in enumerate(self.lanes_list):
             lane.sort()
@@ -66,8 +77,22 @@ class Track:
         Uses lane and position to find the current car and moves it ``count`` lanes.
         Positive values for ``count`` move it to the right.
         """
+        new_lane = lane + count
+        assert 0 <= new_lane < self.lanes_count, "switch out of bounds"
+
         if count == 0:
             return
+
+        lane = self.lanes_list[lane]
+        if len(lane) == 0:
+            return
+        for veh in lane:
+            if veh.position == position:
+                lane.remove(veh)
+                self.lanes_list[new_lane].append(veh)
+                return
+
+        raise ValueError(f"No car in lane {lane} at position {position}")
 
     def car_in_front(self, lane, position):
         """

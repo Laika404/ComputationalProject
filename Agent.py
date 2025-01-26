@@ -168,9 +168,9 @@ class VehicleAgent(object):
             # Car in front is close and slow enough that another lane is preferred.
             # These cases are ordered such that the left lane takes priority.
             if can_go_left:
-                return -1
-            elif can_go_right:
                 return 1
+            elif can_go_right:
+                return -1
             else:
                 return 0
         return 0
@@ -190,16 +190,16 @@ class VehicleAgent(object):
         if speed_difference < -5.0 and gap < self.current_speed * 5.0:
             # Car in front is close and slow enough the passing lane is preferred.
             if can_go_left:
-                return -1
+                return 1
             else:
                 return 0
 
         car_front_right = cars_right[0]
         if car_front_right is None and can_go_right:
-            return 1
+            return -1
         gap_fr = (car_front_right.position - self.position) % road_length
         if gap_fr > 200 and can_go_right:
-            return 1
+            return -1
 
         return 0
 
@@ -212,7 +212,7 @@ class VehicleAgent(object):
         WARNING: Must not be resolved concurrently with acceleration changes,
         otherwise agents might not respond to the new car in their lane.
         """
-        self.greedy_lane_switch(car_front, cars_left, cars_right, road_length)
+        return self.traditional_lane_switch(car_front, cars_left, cars_right, road_length)
 
     def compute_safe_speed(self, gap, leader_speed):
         reaction_time = 1
