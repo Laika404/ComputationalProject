@@ -3,7 +3,18 @@ import numpy as np
 
 # car object that behaves like a car
 class VehicleAgent(object):
-    def __init__(self, position, current_speed, desired_speed=30, max_speed=35, length=5, a_normal=3.05, a_max=6.04, b=0.2, TP=1.2):
+    def __init__(
+        self,
+        position,
+        current_speed,
+        desired_speed=30,
+        max_speed=35,
+        length=5,
+        a_normal=3.05,
+        a_max=6.04,
+        b=0.2,
+        TP=1.2,
+    ):
         """
         The parameters of the vehicle agent are:
         - position: the range is [0, 2000> and indicates the position of the vehicle on the lane
@@ -33,8 +44,8 @@ class VehicleAgent(object):
 
     def compute_decision(self, gap, leader_speed, leader_acceleration):
         """
-        The Decision Tree. Returns the decision: accelerate, 
-        deccelerate or cruise. 
+        The Decision Tree. Returns the decision: accelerate,
+        deccelerate or cruise.
         """
         vF = self.current_speed
         vL = leader_speed
@@ -59,7 +70,9 @@ class VehicleAgent(object):
 
                         else:
                             # deccelerate
-                            self.acceleration = self.decceleration_rate(vF, vL, leader_acceleration, gap, gap_desire)
+                            self.acceleration = self.decceleration_rate(
+                                vF, vL, leader_acceleration, gap, gap_desire
+                            )
 
             elif delta == 0:
                 if vL >= vF:
@@ -68,7 +81,9 @@ class VehicleAgent(object):
 
                 else:
                     # deccelerate
-                    self.acceleration = self.decceleration_rate(vF, vL, leader_acceleration, gap, gap_desire)
+                    self.acceleration = self.decceleration_rate(
+                        vF, vL, leader_acceleration, gap, gap_desire
+                    )
 
             elif delta < 0:
                 if vL > vF:
@@ -77,7 +92,9 @@ class VehicleAgent(object):
 
                 else:
                     # deccelerate
-                    self.acceleration = self.decceleration_rate(vF, vL, leader_acceleration, gap, gap_desire)
+                    self.acceleration = self.decceleration_rate(
+                        vF, vL, leader_acceleration, gap, gap_desire
+                    )
 
         else:
             delta = vF - self.desired_speed
@@ -92,8 +109,9 @@ class VehicleAgent(object):
 
             elif delta > 0:
                 # deccelerate
-                self.acceleration = self.decceleration_rate(vF, vL, leader_acceleration, gap, gap_desire)
-
+                self.acceleration = self.decceleration_rate(
+                    vF, vL, leader_acceleration, gap, gap_desire
+                )
 
     def decceleration_rate(self, vF, vL, aL, gap, gap_desire):
         # case 1: free flowing case
@@ -104,7 +122,7 @@ class VehicleAgent(object):
         # case 2: car-following regime, normal decceleration
         if gap - gap_desire == 0:
             if not vL >= vF:
-                aF = (vF**2 - vL**2) / (2*gap)
+                aF = (vF**2 - vL**2) / (2 * gap)
                 return aF
 
         # case 3: emergency decceleration
@@ -114,15 +132,16 @@ class VehicleAgent(object):
                 return aF
 
         # case 4: near-collision decceleration
-        if (gap - gap_desire > 0) and (not vL >= vF) and (not gap > 3 * vF) and (not ((gap > 2 * vF) and (gap > 7.5))):
-            aF = min(
-                aL + ((vF - vL)**2 / (2 * gap)),
-                self.a_max
-            )
+        if (
+            (gap - gap_desire > 0)
+            and (not vL >= vF)
+            and (not gap > 3 * vF)
+            and (not ((gap > 2 * vF) and (gap > 7.5)))
+        ):
+            aF = min(aL + ((vF - vL) ** 2 / (2 * gap)), self.a_max)
             return aF
 
         return 0
-
 
     def acceleration_rate(self, vF):
         if vF <= 12.19:
@@ -212,24 +231,34 @@ class VehicleAgent(object):
         WARNING: Must not be resolved concurrently with acceleration changes,
         otherwise agents might not respond to the new car in their lane.
         """
-        return self.traditional_lane_switch(car_front, cars_left, cars_right, road_length)
+        return self.traditional_lane_switch(
+            car_front, cars_left, cars_right, road_length
+        )
 
     def compute_safe_speed(self, gap, leader_speed):
         reaction_time = 1
-        v_safe = leader_speed + ((gap - leader_speed*reaction_time) / (reaction_time + ((self.current_speed + leader_speed) / (2 * self.a_max))))
+        v_safe = leader_speed + (
+            (gap - leader_speed * reaction_time)
+            / (
+                reaction_time
+                + ((self.current_speed + leader_speed) / (2 * self.a_max))
+            )
+        )
         return v_safe
 
     def calculate_next_state(self, gap, leader_speed, leader_acceleration, dt):
         """
         Updates the state of the follower (current vehicle), which
-        depends on the speed and acceleration of the leader (car in front), 
+        depends on the speed and acceleration of the leader (car in front),
         and the gap between them.
         """
 
         self.compute_decision(gap, leader_speed, leader_acceleration)
         v_safe = self.compute_safe_speed(gap, leader_speed)
-        v_ideal = min(self.max_speed, self.current_speed + self.acceleration * dt, v_safe)
-        eta = np.random.uniform(0,1)
+        v_ideal = min(
+            self.max_speed, self.current_speed + self.acceleration * dt, v_safe
+        )
+        eta = np.random.uniform(0, 1)
         self.next_speed = max(0, v_ideal - self.b * eta)
 
     def update_state(self, dt):

@@ -4,7 +4,13 @@ from track_interface import Track
 
 
 class Model(object):
-    def __init__(self, dt: float = 1.0, total_time: int = 2000, road_length: int = 2000, lane_count: int = 1) -> None:
+    def __init__(
+        self,
+        dt: float = 1.0,
+        total_time: int = 2000,
+        road_length: int = 2000,
+        lane_count: int = 1,
+    ) -> None:
         """
         The parameters of the simulation model are:
         - dt: the timestep in each iteration of the simulation
@@ -18,10 +24,11 @@ class Model(object):
         self.lane_count = lane_count
         self.road_length_km = self.road_length / 1000
         self.density_values = np.linspace(0, 120, 10)
-        self.total_runs = 20 # In the paper they also did 20 runs for each density
+        self.total_runs = (
+            20  # In the paper they also did 20 runs for each density
+        )
         self.flow_results = [[] for _ in range(self.total_runs)]
         self.speed_results = [[] for _ in range(self.total_runs)]
-
 
     def run(self, idx) -> None:
         """
@@ -31,10 +38,10 @@ class Model(object):
 
         for density in self.density_values:
             # N is amount of vehicles
-            track = Track(lane_count = self.lane_count, length = self.road_length)
+            track = Track(lane_count=self.lane_count, length=self.road_length)
             track.init_cars(density)
 
-            total_crossings = 0 # count the total crossings at a fixed reference point in time
+            total_crossings = 0  # count the total crossings at a fixed reference point in time
 
             for _ in range(int(self.total_time / self.dt)):
                 track.lane_switches()
@@ -49,11 +56,15 @@ class Model(object):
                             total_crossings += 1
 
             flow = total_crossings
-            mean_speed = np.mean([veh.current_speed for veh in np.array(track.lanes_list).flatten()])
+            mean_speed = np.mean(
+                [
+                    veh.current_speed
+                    for veh in np.array(track.lanes_list).flatten()
+                ]
+            )
 
             self.flow_results[idx].append(flow)
             self.speed_results[idx].append(mean_speed)
-
 
     def plot(self, stat: str = "position", out_file=None) -> None:
         """
@@ -63,33 +74,58 @@ class Model(object):
         """
 
         if stat == "position":
-            for idx in range(self.total_runs): # Run the simulation 20 times
+            for idx in range(self.total_runs):  # Run the simulation 20 times
                 self.run(idx)
 
                 # Scatter plot for current run
-                plt.scatter(self.density_values, self.flow_results[idx], alpha=0.5, color='gray')
+                plt.scatter(
+                    self.density_values,
+                    self.flow_results[idx],
+                    alpha=0.5,
+                    color="gray",
+                )
 
             # average flow
-            avg_flow = np.mean(self.flow_results, axis=0) if isinstance(self.flow_results[0], list) else self.flow_results
-            plt.plot(self.density_values, avg_flow, color='black', label='Mean Flow')
-            plt.xlabel('Density (veh/km)')
-            plt.ylabel('Flow (veh/h)')
-            plt.title('The relationship between flow and density')
+            avg_flow = (
+                np.mean(self.flow_results, axis=0)
+                if isinstance(self.flow_results[0], list)
+                else self.flow_results
+            )
+            plt.plot(
+                self.density_values, avg_flow, color="black", label="Mean Flow"
+            )
+            plt.xlabel("Density (veh/km)")
+            plt.ylabel("Flow (veh/h)")
+            plt.title("The relationship between flow and density")
             plt.legend()
 
         elif stat == "velocity":
-            for idx in range(self.total_runs): # Run the simulation 20 times
+            for idx in range(self.total_runs):  # Run the simulation 20 times
                 self.run(idx)
 
                 # Scatter plot for current run
-                plt.scatter(self.density_values, self.speed_results[idx], alpha=0.5, color='gray')
+                plt.scatter(
+                    self.density_values,
+                    self.speed_results[idx],
+                    alpha=0.5,
+                    color="gray",
+                )
 
             # average speed
-            avg_speed = np.mean(self.speed_results, axis=0) if isinstance(self.speed_results[0], list) else self.speed_results
-            plt.plot(self.density_values, avg_speed, color='black', label='Mean Speed')
-            plt.xlabel('Density (veh/km)')
-            plt.ylabel('Mean Speed (m/s)')
-            plt.title('The relationship between mean-speed and density')
+            avg_speed = (
+                np.mean(self.speed_results, axis=0)
+                if isinstance(self.speed_results[0], list)
+                else self.speed_results
+            )
+            plt.plot(
+                self.density_values,
+                avg_speed,
+                color="black",
+                label="Mean Speed",
+            )
+            plt.xlabel("Density (veh/km)")
+            plt.ylabel("Mean Speed (m/s)")
+            plt.title("The relationship between mean-speed and density")
             plt.legend()
 
         else:
@@ -101,7 +137,7 @@ class Model(object):
             plt.savefig(out_file)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # when you run "python model.py" you land here: the simulation will run
     model = Model(lane_count=2)
     model.plot(stat="position")

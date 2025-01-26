@@ -4,15 +4,15 @@ from Agent import VehicleAgent
 
 class Track:
 
-    def __init__(self, lane_count = 2, length=2000, dt=1.0):
+    def __init__(self, lane_count=2, length=2000, dt=1.0):
         self.lanes_count = lane_count
         # Rightmost lane has index 0 and is the slow lane.
         self.lanes_list = [[] for _ in range(lane_count)]
         self.length = length
         self.dt = dt
 
-    def init_cars(self, density=10, equal_lanes = False):
-        N_cars = int((self.length/1000)*density)
+    def init_cars(self, density=10, equal_lanes=False):
+        N_cars = int((self.length / 1000) * density)
         cars_per_lane = N_cars // self.lanes_count
 
         for i in range(self.lanes_count):
@@ -21,9 +21,11 @@ class Track:
         return
 
         if equal_lanes:
-            split_points = np.linspace(0, N_cars, self.lanes_count+1)[1:-1]
+            split_points = np.linspace(0, N_cars, self.lanes_count + 1)[1:-1]
         else:
-            split_points = np.sort(np.random.uniform(0, N_cars, self.lanes_count - 1))
+            split_points = np.sort(
+                np.random.uniform(0, N_cars, self.lanes_count - 1)
+            )
 
         split_points = split_points.astype(int)
 
@@ -35,11 +37,18 @@ class Track:
             lane += 1
 
     def populate_lane(self, N):
-        initial_positions = np.sort(np.random.uniform(0, self.length - (N * 5), N))
-        initial_positions += np.arange(N) * 5  # Ensure minimum gaps of 5m by adding vehicle length
+        initial_positions = np.sort(
+            np.random.uniform(0, self.length - (N * 5), N)
+        )
+        initial_positions += (
+            np.arange(N) * 5
+        )  # Ensure minimum gaps of 5m by adding vehicle length
 
         initial_speeds = np.random.uniform(0, 35, N)
-        vehicle_list = [VehicleAgent(initial_positions[i], initial_speeds[i]) for i in range(N)]
+        vehicle_list = [
+            VehicleAgent(initial_positions[i], initial_speeds[i])
+            for i in range(N)
+        ]
         return vehicle_list
 
     def lane_switches(self):
@@ -134,14 +143,18 @@ class Track:
         """
         left_lane, right_lane = cur_lane - 1, cur_lane + 1
         if right_lane <= 0:
-            right = (self.car_in_front(right_lane, position),
-                     self.car_in_back(right_lane, position))
+            right = (
+                self.car_in_front(right_lane, position),
+                self.car_in_back(right_lane, position),
+            )
         else:
             right = None
 
         if left_lane > self.lanes_count:
-            left = (self.car_in_front(left_lane, position),
-                     self.car_in_back(left_lane, position))
+            left = (
+                self.car_in_front(left_lane, position),
+                self.car_in_back(left_lane, position),
+            )
         else:
             left = None
 

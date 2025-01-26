@@ -8,17 +8,19 @@ import matplotlib as mpl
 # PARAMETERS
 ########################################
 CIRCUMFERENCE = 2000.0  # meters
-LANE_WIDTH = 10        # meters (example)
+LANE_WIDTH = 10  # meters (example)
 NUM_LANES = 1
 
 # Calculate the base radius for the innermost lane
 # Circumference = 2 * pi * R  =>  R = circumference / (2*pi)
 BASE_RADIUS = CIRCUMFERENCE / (2.0 * np.pi)
 
+
 # If you have more than one lane, each lane i has radius R_i = BASE_RADIUS + i*LANE_WIDTH
 # We'll define a helper function to compute radius given a lane index
 def get_lane_radius(lane_index):
     return BASE_RADIUS + lane_index * LANE_WIDTH
+
 
 ########################################
 # LOAD CSV DATA
@@ -55,7 +57,7 @@ ax.set_ylim(-outer_radius - padding, outer_radius + padding)
 
 # Draw each lane as a dashed circle for reference, may need to be hardcoded
 # for lane narrowing
-theta_vals = np.linspace(0, 2*np.pi, 360)
+theta_vals = np.linspace(0, 2 * np.pi, 360)
 for lane_i in range(max_lane + 1):
     r_lane = get_lane_radius(lane_i)
     x_lane = r_lane * np.cos(theta_vals)
@@ -69,6 +71,7 @@ scat = ax.scatter([], [], c="red", s=20, alpha=0.8)
 ########################################
 # HELPER FUNCTIONS
 ########################################
+
 
 def alpha_to_xy(alpha, lane):
     """
@@ -87,9 +90,11 @@ def alpha_to_xy(alpha, lane):
     y = r * np.sin(theta)
     return x, y
 
+
 def init():
     """Initialize the background of the animation (nothing to update yet)."""
-    return scat,
+    return (scat,)
+
 
 def update(frame):
     """
@@ -118,18 +123,14 @@ def update(frame):
     cmap = plt.cm.get_cmap("coolwarm")
     norm = plt.Normalize(vmin=df["speed"].min(), vmax=df["speed"].max())
     scat.set_color(cmap(norm(colors)))
-    return scat,
+    return (scat,)
+
 
 ########################################
 # CREATE THE ANIMATION
 ########################################
 ani = animation.FuncAnimation(
-    fig,
-    update,
-    frames=timesteps,
-    init_func=init,
-    blit=True,
-    repeat=True
+    fig, update, frames=timesteps, init_func=init, blit=True, repeat=True
 )
 
 plt.show()
