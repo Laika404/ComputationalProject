@@ -39,6 +39,9 @@ class VehicleAgent(object):
         self.TP = TP
         self.acceleration = 0
 
+    def __lt__(self, other):
+        return self.position < other.position
+
     def compute_decision(self, gap, leader_speed, leader_acceleration):
         """
         The Decision Tree. Returns the decision: accelerate,
@@ -149,6 +152,89 @@ class VehicleAgent(object):
 
         return aF
 
+    def can_switch_lane(self, cars):
+        # TODO(Seb): account for the speed of other cars
+        if cars is None:
+            # No lane here
+            return False
+
+        car_front, car_behind = cars
+        if self.position > car_front.position - car_front.length:
+            return False
+        elif self.position - self.length < car_behind.position:
+            return False
+        return True
+
+    def can_switch_lanes(self, cars_left, cars_right):
+        return (
+            self.can_switch_lane(cars_left),
+            self.can_switch_lane(cars_right),
+        )
+
+    def greedy_lane_switch(
+        self, car_front, cars_left, cars_right, road_length
+    ):
+        """Greedily switch to any lane if current lane has a slow leader."""
+        can_go_left, can_go_right = self.can_switch_lanes(
+            cars_left, cars_right
+        )
+        if can_go_left == can_go_right == False:
+            return 0
+
+        speed_difference = car_front.current_speed - self.current_speed
+        gap = (car_front.position - self.position) % road_length
+        if speed_difference < -5.0 and gap < self.current_speed * 5.0:
+            # Car in front is close and slow enough that another lane is preferred.
+            # These cases are ordered such that the left lane takes priority.
+            if can_go_left:
+                return 1
+            elif can_go_right:
+                return -1
+            else:
+                return 0
+        return 0
+
+    def traditional_lane_switch(
+        self, car_front, cars_left, cars_right, road_length
+    ):
+        """Switch lanes by using fast (left) lanes and slow (right) lanes."""
+        can_go_left, can_go_right = self.can_switch_lanes(
+            cars_left, cars_right
+        )
+        if can_go_left == can_go_right == False:
+            return 0
+
+        speed_difference = car_front.current_speed - self.current_speed
+        gap = (car_front.position - self.position) % road_length
+        if speed_difference < -5.0 and gap < self.current_speed * 5.0:
+            # Car in front is close and slow enough the passing lane is preferred.
+            if can_go_left:
+                return 1
+            else:
+                return 0
+
+        car_front_right = cars_right[0]
+        if car_front_right is None and can_go_right:
+            return -1
+        gap_fr = (car_front_right.position - self.position) % road_length
+        if gap_fr > 200 and can_go_right:
+            return -1
+
+        return 0
+
+    def lane_switch(self, car_front, cars_left, cars_right, road_length):
+        """
+        Returns where this agent wants to switch lanes to. This is given by an
+        integer -1, 0, or 1, meaning switch left, stay in lane, and switch right,
+        respectively.
+
+        WARNING: Must not be resolved concurrently with acceleration changes,
+        otherwise agents might not respond to the new car in their lane.
+        """
+        return self.traditional_lane_switch(
+            car_front, cars_left, cars_right, road_length
+        )
+
     def compute_safe_speed(self, gap, leader_speed):
         reaction_time = 1
         v_safe = leader_speed + (
@@ -160,7 +246,7 @@ class VehicleAgent(object):
         )
         return v_safe
 
-    def update_state(self, gap, leader_speed, leader_acceleration, dt):
+    def calculate_next_state(self, gap, leader_speed, leader_acceleration, dt):
         """
         Updates the state of the follower (current vehicle), which
         depends on the speed and acceleration of the leader (car in front),
@@ -173,5 +259,8 @@ class VehicleAgent(object):
             self.max_speed, self.current_speed + self.acceleration * dt, v_safe
         )
         eta = np.random.rand()
-        self.current_speed = max(0, v_ideal - self.b * eta)
+        self.next_speed = max(0, v_ideal - self.b * eta)
+
+    def update_state(self, dt):
+        self.current_speed = self.next_speed
         self.position += self.current_speed * dt

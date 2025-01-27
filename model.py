@@ -1,12 +1,15 @@
-from typing import List
 import matplotlib.pyplot as plt
 import numpy as np
-from Agent import VehicleAgent
+from track_interface import Track
 
 
 class Model(object):
     def __init__(
-        self, dt: float = 1.0, total_time: int = 2000, road_length: int = 2000
+        self,
+        dt: float = 1.0,
+        total_time: int = 2000,
+        road_length: int = 2000,
+        lane_count: int = 1,
     ) -> None:
         """
         The parameters of the simulation model are:
@@ -18,8 +21,9 @@ class Model(object):
         self.dt = dt
         self.total_time = total_time
         self.road_length = road_length
+        self.lane_count = lane_count
         self.road_length_km = self.road_length / 1000
-        self.density_values = np.linspace(0, 120, 10)
+        self.density_values = np.linspace(0, 140, 10)
         self.total_runs = (
             20  # In the paper they also did 20 runs for each density
         )
@@ -34,48 +38,31 @@ class Model(object):
 
         for density in self.density_values:
             # N is amount of vehicles
-            N = int(density * self.road_length_km)
-            initial_positions = np.sort(
-                np.random.uniform(0, self.road_length - (N * 5), N)
-            )
-            initial_positions += (
-                np.arange(N) * 5
-            )  # Ensure minimum gaps of 5m by adding vehicle length
-
-            vehicles: List[VehicleAgent] = [
-                VehicleAgent(pos, np.random.uniform(0, 35))
-                for pos in initial_positions  # speed is initialied at random, must be between 0 and max speed = 35
-            ]
+            track = Track(lane_count=self.lane_count, length=self.road_length)
+            track.init_cars(density)
 
             total_crossings = 0  # count the total crossings at a fixed reference point in time
 
-            for t in range(int(self.total_time / self.dt)):
-                vehicles.sort(key=lambda vehicle: vehicle.position)
+            for _ in range(int(self.total_time / self.dt)):
+                if self.lane_count > 1:
+                    # We don't need to run code that won't do anything
+                    track.lane_switches()
+                track.calculate_next_state()
+                track.update_state()
 
-                for i, vehicle in enumerate(vehicles):
-                    leader = vehicles[(i + 1) % N]
-                    gap = (
-                        leader.position - vehicle.position
-                    ) % self.road_length
-                    gap = max(0, gap - leader.length)
-
-                    # update the state of the current vehicle(the follower)
-                    vehicle.update_state(
-                        gap=gap,
-                        leader_speed=leader.current_speed,
-                        leader_acceleration=leader.acceleration,
-                        dt=self.dt,
-                    )
-
-                    # if the vehicle's traveled distance is > 2000m then we wrap around the road
-                    # which is called the periodic boundary condition.
-                    if vehicle.position >= self.road_length:
-                        vehicle.position -= self.road_length
-                        total_crossings += 1
+                for lane in track.lanes_list:
+                    for vehicle in lane:
+                        # Periodic boundary condition
+                        if vehicle.position >= self.road_length:
+                            vehicle.position -= self.road_length
+                            total_crossings += 1
 
             flow = total_crossings
             mean_speed = np.mean(
-                [vehicle.current_speed for vehicle in vehicles]
+                [
+                    veh.current_speed
+                    for veh in np.array(track.lanes_list).flatten()
+                ]
             )
 
             self.flow_results[idx].append(flow)
@@ -154,5 +141,5 @@ class Model(object):
 
 if __name__ == "__main__":
     # when you run "python model.py" you land here: the simulation will run
-    model = Model()
+    model = Model(lane_count=1)
     model.plot(stat="position")
