@@ -23,7 +23,7 @@ class Model(object):
         self.road_length = road_length
         self.lane_count = lane_count
         self.road_length_km = self.road_length / 1000
-        self.density_values = np.linspace(0, 120, 10)
+        self.density_values = np.linspace(0, 140, 10)
         self.total_runs = (
             20  # In the paper they also did 20 runs for each density
         )
@@ -44,7 +44,9 @@ class Model(object):
             total_crossings = 0  # count the total crossings at a fixed reference point in time
 
             for _ in range(int(self.total_time / self.dt)):
-                track.lane_switches()
+                if self.lane_count > 1:
+                    # We don't need to run code that won't do anything
+                    track.lane_switches()
                 track.calculate_next_state()
                 track.update_state()
 
@@ -139,5 +141,5 @@ class Model(object):
 
 if __name__ == "__main__":
     # when you run "python model.py" you land here: the simulation will run
-    model = Model(lane_count=2)
+    model = Model(lane_count=1)
     model.plot(stat="position")
