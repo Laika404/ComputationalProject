@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from .track_interface import Track
+from track_interface import Track
 from itertools import chain
 
 
@@ -11,6 +11,9 @@ class Model(object):
         total_time: int = 2000,
         road_length: int = 2000,
         lane_count: int = 1,
+        central_control = False,
+        max_accel = 1,
+        speed_push = 0.5
     ) -> None:
         """
         The parameters of the simulation model are:
@@ -31,6 +34,11 @@ class Model(object):
         self.flow_results = [[] for _ in range(self.total_runs)]
         self.speed_results = [[] for _ in range(self.total_runs)]
 
+        self.central_control = central_control
+        self.max_accel = max_accel
+        self.speed_push = speed_push
+
+
     def run(self, idx) -> None:
         """
         A single run of the simulation. In total, we will perform 20 runs,
@@ -39,15 +47,25 @@ class Model(object):
 
         for density in self.density_values:
             # N is amount of vehicles
-            track = Track(lane_count=self.lane_count, length=self.road_length)
+            track = Track(lane_count=self.lane_count, length=self.road_length, central_control=self.central_control, 
+                          max_accel=self.max_accel, speed_push=self.speed_push)
             track.init_cars(density)
+
+            total_cars =  sum([len(lane) for lane in track.lanes_list])
+            # prefered amount of cars per lane
+            prefered_per_lane = [total_cars//track.lanes_count for lane in range(len(track.lanes_list))]
+            for i in range(total_cars%track.lanes_count):
+                prefered_per_lane[i] += 1
 
             total_crossings = 0  # count the total crossings at a fixed reference point in time
 
             for _ in range(int(self.total_time / self.dt)):
                 if self.lane_count > 1:
                     # We don't need to run code that won't do anything
-                    track.lane_switches()
+                    if (self.central_control):
+                        track.lane_switches_central(prefered_per_lane)
+                    else:
+                        track.lane_switches()
                 track.calculate_next_state()
                 track.update_state()
 
@@ -78,7 +96,9 @@ class Model(object):
 
         if stat == "position":
             for idx in range(self.total_runs):  # Run the simulation 20 times
+                print("run " + idx)
                 self.run(idx)
+
 
                 # Scatter plot for current run
                 plt.scatter(
@@ -104,6 +124,7 @@ class Model(object):
 
         elif stat == "velocity":
             for idx in range(self.total_runs):  # Run the simulation 20 times
+                print(idx)                
                 self.run(idx)
 
                 # Scatter plot for current run
@@ -142,5 +163,5 @@ class Model(object):
 
 if __name__ == "__main__":
     # when you run "python -m src.model" you land here: the simulation will run
-    model = Model(lane_count=1)
+    model = Model(lane_count=2, central_control=True)
     model.plot(stat="velocity")
