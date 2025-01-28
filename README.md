@@ -36,5 +36,5 @@ To run the model along with the code that plots the resulting data, run the
 following command:
 
 ```sh
-python -m src.model.py
+python -m src.model
 ```
