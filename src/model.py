@@ -1,7 +1,9 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from .track_interface import Track
+from multiprocessing import Pool
 from itertools import chain
+import time
 
 
 class Model(object):
@@ -28,14 +30,14 @@ class Model(object):
         self.total_runs = (
             20  # In the paper they also did 20 runs for each density
         )
-        self.flow_results = [[] for _ in range(self.total_runs)]
-        self.speed_results = [[] for _ in range(self.total_runs)]
 
-    def run(self, idx) -> None:
+    def run(self, placeholder):
         """
         A single run of the simulation. In total, we will perform 20 runs,
         which is also done in the paper which we wanted to validate our model with.
         """
+        flow_results = []
+        speed_results = []
 
         for density in self.density_values:
             # N is amount of vehicles
@@ -60,14 +62,13 @@ class Model(object):
 
             flow = total_crossings
             mean_speed = np.mean(
-                [
-                    veh.current_speed
-                    for veh in chain(*track.lanes_list)
-                ]
+                [veh.current_speed for veh in chain(*track.lanes_list)]
             )
 
-            self.flow_results[idx].append(flow)
-            self.speed_results[idx].append(mean_speed)
+            flow_results.append(flow)
+            speed_results.append(mean_speed)
+
+        return (flow_results, speed_results)
 
     def plot(self, stat: str = "position", out_file=None) -> None:
         """
@@ -76,24 +77,29 @@ class Model(object):
         then the plot is a mean-speed-density graph.
         """
 
-        if stat == "position":
-            for idx in range(self.total_runs):  # Run the simulation 20 times
-                self.run(idx)
+        start = time.monotonic()
+        placeholders = [None] * self.total_runs
+        with Pool() as p:
+            data = p.map(self.run, placeholders)
+        end = time.monotonic()
+        print(f"Took {end - start} s ({(end - start)/60} min)")
 
-                # Scatter plot for current run
+        if stat == "position":
+            flows = [x[0] for x in data]
+
+            for flow in flows:
                 plt.scatter(
                     self.density_values,
-                    self.flow_results[idx],
+                    flow,
                     alpha=0.5,
                     color="gray",
                 )
 
             # average flow
             avg_flow = (
-                np.mean(self.flow_results, axis=0)
-                if isinstance(self.flow_results[0], list)
-                else self.flow_results
+                np.mean(flows, axis=0) if isinstance(flows[0], list) else flows
             )
+
             plt.plot(
                 self.density_values, avg_flow, color="black", label="Mean Flow"
             )
@@ -103,22 +109,20 @@ class Model(object):
             plt.legend()
 
         elif stat == "velocity":
-            for idx in range(self.total_runs):  # Run the simulation 20 times
-                self.run(idx)
-
-                # Scatter plot for current run
+            speeds = [x[1] for x in data]
+            for speed in speeds:
                 plt.scatter(
                     self.density_values,
-                    self.speed_results[idx],
+                    speed,
                     alpha=0.5,
                     color="gray",
                 )
 
             # average speed
             avg_speed = (
-                np.mean(self.speed_results, axis=0)
-                if isinstance(self.speed_results[0], list)
-                else self.speed_results
+                np.mean(speeds, axis=0)
+                if isinstance(speeds[0], list)
+                else speeds
             )
             plt.plot(
                 self.density_values,

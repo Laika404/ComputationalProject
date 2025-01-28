@@ -10,9 +10,11 @@ class Track:
         self.lanes_list = [[] for _ in range(lane_count)]
         self.length = length
         self.dt = dt
+        self.rand = np.random.default_rng()
 
     def init_cars(self, density=10, equal_lanes=False):
         N_cars = int((self.length / 1000) * density)
+
         cars_per_lane = N_cars // self.lanes_count
 
         for i in range(self.lanes_count):
@@ -24,7 +26,7 @@ class Track:
             split_points = np.linspace(0, N_cars, self.lanes_count + 1)[1:-1]
         else:
             split_points = np.sort(
-                np.random.uniform(0, N_cars, self.lanes_count - 1)
+                self.rand.uniform(0, N_cars, self.lanes_count - 1)
             )
 
         split_points = split_points.astype(int)
@@ -38,13 +40,13 @@ class Track:
 
     def populate_lane(self, N):
         initial_positions = np.sort(
-            np.random.uniform(0, self.length - (N * 5), N)
+            self.rand.uniform(0, self.length - (N * 5), N)
         )
         initial_positions += (
             np.arange(N) * 5
         )  # Ensure minimum gaps of 5m by adding vehicle length
 
-        initial_speeds = np.random.uniform(0, 35, N)
+        initial_speeds = self.rand.uniform(0, 35, N)
         vehicle_list = [
             VehicleAgent(initial_positions[i], initial_speeds[i])
             for i in range(N)
@@ -95,7 +97,9 @@ class Track:
         Positive values for ``count`` move it to the right.
         """
         new_lane = lane + count
-        assert 0 <= new_lane < self.lanes_count, f"new lane ({new_lane} out of bounds"
+        assert (
+            0 <= new_lane < self.lanes_count
+        ), f"new lane ({new_lane} out of bounds"
 
         if count == 0:
             return

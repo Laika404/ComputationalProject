@@ -38,6 +38,7 @@ class VehicleAgent(object):
         self.b = b
         self.TP = TP
         self.acceleration = 0
+        self.rand = np.random.default_rng()
 
     def __lt__(self, other):
         return self.position < other.position
@@ -163,8 +164,10 @@ class VehicleAgent(object):
 
         car_front, car_behind = cars
         if car_front == car_behind:
-            return self.position < car_front.position - car_front.length or \
-                    self.position - self.length > car_front.position
+            return (
+                self.position < car_front.position - car_front.length
+                or self.position - self.length > car_front.position
+            )
         if self.position > car_front.position - car_front.length:
             return False
         elif self.position - self.length < car_behind.position:
@@ -268,7 +271,7 @@ class VehicleAgent(object):
         v_ideal = min(
             self.max_speed, self.current_speed + self.acceleration * dt, v_safe
         )
-        eta = np.random.rand()
+        eta = self.rand.random()
         self.next_speed = max(0, v_ideal - self.b * eta)
 
     def update_state(self, dt):
