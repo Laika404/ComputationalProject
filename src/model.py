@@ -141,6 +141,6 @@ class Model(object):
 
 
 if __name__ == "__main__":
-    # when you run "python model.py" you land here: the simulation will run
+    # when you run "python -m src.model" you land here: the simulation will run
     model = Model(lane_count=1)
     model.plot(stat="velocity")
