@@ -1,33 +1,36 @@
 import numpy as np
-from .Agent import VehicleAgent
+from Agent import VehicleAgent
 
 
 class Track:
 
-    def __init__(self, lane_count=2, length=2000, dt=1.0):
+    def __init__(self, lane_count=2, length=2000, dt=1.0, central_control=False, max_accel=1, speed_push=0.5):
         self.lanes_count = lane_count
         # Rightmost lane has index 0 and is the slow lane.
         self.lanes_list = [[] for _ in range(lane_count)]
         self.length = length
         self.dt = dt
 
+        self.central_control = central_control
+        self.max_accel = max_accel
+        self.speed_push = speed_push
+
     def init_cars(self, density=10, equal_lanes=False):
+        # amount of cars
         N_cars = int((self.length / 1000) * density)
-        cars_per_lane = N_cars // self.lanes_count
-
-        for i in range(self.lanes_count):
-            self.lanes_list[i] = self.populate_lane(cars_per_lane)
-
-        return
-
         if equal_lanes:
             split_points = np.linspace(0, N_cars, self.lanes_count + 1)[1:-1]
         else:
             split_points = np.sort(
                 np.random.uniform(0, N_cars, self.lanes_count - 1)
             )
-
-        split_points = split_points.astype(int)
+        try:
+            split_points = [int(split_points)]
+        except:
+            split_points = split_points.astype(int)
+        
+        split_points = list(split_points)
+        split_points.append(N_cars)
 
         past_amount = 0
         lane = 0
@@ -61,10 +64,45 @@ class Track:
                 right = sides[i - 1]
                 count = vehicle.lane_switch(front, left, right, self.length)
                 self.switch_lane(i, vehicle.position, count)
-
+    
+    def can_switch_central(self, vehicle: VehicleAgent, lane):
+            front = self.car_in_front(lane, vehicle.position)
+            sides = self.closest_cars_sides(lane, vehicle.position)
+            left = sides[lane+1]
+            right = sides[lane-1]
+            return vehicle.can_switch_lanes(left, right)
+    
+    def lane_switches_central(self, prefered_per_lane):
+        for lane_i in range(self.lanes_count):
+            # sort every lane
+            for lane in self.lanes_list:
+                lane.sort()
+            lane_count = len(self.lanes_list[lane_i])
+            for veh in self.lanes_list[lane_i]:
+                if lane_count > prefered_per_lane[lane_i]:
+                    switch_posible = self.can_switch_central(veh, lane_i)
+                    if (any(switch_posible)):
+                        choice = -1
+                        if (all(switch_posible)):
+                            choice = np.random.randint(0,2)
+                        elif switch_posible[0]:
+                            choice = 0
+                        else:
+                            choice = 1
+                        self.switch_lane(lane_i, veh.position, int(choice==0) - int(choice==1))
+                else:
+                    break
+    
     def calculate_next_state(self):
         for i, lane in enumerate(self.lanes_list):
             lane.sort()
+            if (self.central_control):
+                try:
+                    mean_speed_lane = sum([veh.current_speed for veh in lane])/len(lane)
+                except ZeroDivisionError:
+                    mean_speed_lane = None
+            else:
+                mean_speed_lane = None
             for vehicle in lane:
                 leader = self.car_in_front(i, vehicle.position)
                 gap = (leader.position - vehicle.position) % self.length
@@ -75,6 +113,9 @@ class Track:
                         leader.current_speed,
                         leader.acceleration,
                         self.dt,
+                        mean_speed_lane,
+                        self.max_accel,
+                        self.speed_push
                     )
                 else:
                     vehicle.calculate_next_state(
@@ -82,6 +123,9 @@ class Track:
                         np.inf,
                         np.inf,
                         self.dt,
+                        mean_speed_lane,
+                        self.max_accel,
+                        self.speed_push
                     )
 
     def update_state(self):
