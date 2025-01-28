@@ -1,5 +1,5 @@
 import unittest
-from Agent import VehicleAgent
+from src.Agent import VehicleAgent
 
 
 class AgentTest(unittest.TestCase):

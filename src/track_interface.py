@@ -1,5 +1,5 @@
 import numpy as np
-from Agent import VehicleAgent
+from .Agent import VehicleAgent
 
 
 class Track:

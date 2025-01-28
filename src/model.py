@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from track_interface import Track
+from .track_interface import Track
 
 
 class Model(object):
