@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import numpy as np
 from .track_interface import Track
+from itertools import chain
 
 
 class Model(object):
@@ -61,7 +62,7 @@ class Model(object):
             mean_speed = np.mean(
                 [
                     veh.current_speed
-                    for veh in np.array(track.lanes_list).flatten()
+                    for veh in chain(*track.lanes_list)
                 ]
             )
 

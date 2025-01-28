@@ -57,8 +57,8 @@ class Track:
             for vehicle in lane:
                 front = self.car_in_front(i, vehicle.position)
                 sides = self.closest_cars_sides(i, vehicle.position)
-                left = sides[i - 1]
-                right = sides[i + 1]
+                left = sides[i + 1]
+                right = sides[i - 1]
                 count = vehicle.lane_switch(front, left, right, self.length)
                 self.switch_lane(i, vehicle.position, count)
 
@@ -69,12 +69,20 @@ class Track:
                 leader = self.car_in_front(i, vehicle.position)
                 gap = (leader.position - vehicle.position) % self.length
                 gap = max(0, gap - leader.length)
-                vehicle.calculate_next_state(
-                    gap,
-                    leader.current_speed,
-                    leader.acceleration,
-                    self.dt,
-                )
+                if leader is not vehicle:
+                    vehicle.calculate_next_state(
+                        gap,
+                        leader.current_speed,
+                        leader.acceleration,
+                        self.dt,
+                    )
+                else:
+                    vehicle.calculate_next_state(
+                        np.inf,
+                        np.inf,
+                        np.inf,
+                        self.dt,
+                    )
 
     def update_state(self):
         for lane in self.lanes_list:
@@ -87,7 +95,7 @@ class Track:
         Positive values for ``count`` move it to the right.
         """
         new_lane = lane + count
-        assert 0 <= new_lane < self.lanes_count, "switch out of bounds"
+        assert 0 <= new_lane < self.lanes_count, f"new lane ({new_lane} out of bounds"
 
         if count == 0:
             return
@@ -141,8 +149,8 @@ class Track:
                 1: (vehicle_in_front, vehicle_behind),
             }
         """
-        left_lane, right_lane = cur_lane - 1, cur_lane + 1
-        if right_lane <= 0:
+        left_lane, right_lane = cur_lane + 1, cur_lane - 1
+        if 0 <= right_lane < self.lanes_count:
             right = (
                 self.car_in_front(right_lane, position),
                 self.car_in_back(right_lane, position),
@@ -150,7 +158,7 @@ class Track:
         else:
             right = None
 
-        if left_lane > self.lanes_count:
+        if 0 <= left_lane < self.lanes_count:
             left = (
                 self.car_in_front(left_lane, position),
                 self.car_in_back(left_lane, position),

@@ -157,8 +157,14 @@ class VehicleAgent(object):
         if cars is None:
             # No lane here
             return False
+        elif cars == (None, None):
+            # Lane is empty
+            return True
 
         car_front, car_behind = cars
+        if car_front == car_behind:
+            return self.position < car_front.position - car_front.length or \
+                    self.position - self.length > car_front.position
         if self.position > car_front.position - car_front.length:
             return False
         elif self.position - self.length < car_behind.position:
@@ -166,6 +172,7 @@ class VehicleAgent(object):
         return True
 
     def can_switch_lanes(self, cars_left, cars_right):
+        assert cars_left != cars_right, f"{cars_left} == {cars_right}"
         return (
             self.can_switch_lane(cars_left),
             self.can_switch_lane(cars_right),
@@ -213,12 +220,15 @@ class VehicleAgent(object):
             else:
                 return 0
 
-        car_front_right = cars_right[0]
-        if car_front_right is None and can_go_right:
-            return -1
-        gap_fr = (car_front_right.position - self.position) % road_length
-        if gap_fr > 200 and can_go_right:
-            return -1
+        if can_go_right:
+            car_front_right = cars_right[0]
+            if car_front_right is None:
+                # Slow lane is empty
+                return -1
+            gap_fr = (car_front_right.position - self.position) % road_length
+            if gap_fr > 200:
+                # Next car in slow lane is far enough away
+                return -1
 
         return 0
 
