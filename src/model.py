@@ -142,4 +142,4 @@ class Model(object):
 if __name__ == "__main__":
     # when you run "python model.py" you land here: the simulation will run
     model = Model(lane_count=1)
-    model.plot(stat="position")
+    model.plot(stat="velocity")
