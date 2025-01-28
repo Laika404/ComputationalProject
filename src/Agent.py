@@ -14,6 +14,7 @@ class VehicleAgent(object):
         a_max=6.04,
         b=0.2,
         TP=1.2,
+        AC = 0.5
     ):
         """
         The parameters of the vehicle agent are:
@@ -26,6 +27,7 @@ class VehicleAgent(object):
         - a max: the maximum acceleration, used in specific scenarios (refer to decceleration_rate())
         - b: the noise of the model, accounting for the real world environment
         - TP: the time headway the follower prefers to the vehicle in front
+        - AC: the chance that in a centralized control environment this car tries to increase the mean spead
         """
 
         self.position = position
@@ -38,6 +40,7 @@ class VehicleAgent(object):
         self.b = b
         self.TP = TP
         self.acceleration = 0
+        self.AC = AC
 
     def __lt__(self, other):
         return self.position < other.position
@@ -256,11 +259,13 @@ class VehicleAgent(object):
         )
         return v_safe
 
-    def calculate_next_state(self, gap, leader_speed, leader_acceleration, dt):
+    def calculate_next_state(self, gap, leader_speed, leader_acceleration, dt, mean_speed = None, max_accel=1, speed_push = 0.5):
         """
         Updates the state of the follower (current vehicle), which
         depends on the speed and acceleration of the leader (car in front),
         and the gap between them.
+
+        mean_spead = None means no centralized control
         """
 
         self.compute_decision(gap, leader_speed, leader_acceleration)
@@ -268,8 +273,25 @@ class VehicleAgent(object):
         v_ideal = min(
             self.max_speed, self.current_speed + self.acceleration * dt, v_safe
         )
-        eta = np.random.rand()
+        eta = None
+        # eta is only random when no centralized control
+        if (mean_speed == None):
+            eta = np.random.rand()
+        else:
+            eta = 0.5
+        
         self.next_speed = max(0, v_ideal - self.b * eta)
+        if (mean_speed != None):
+            dif_speed = mean_speed - self.next_speed
+            # normalized dif_speed
+            dif_speed = max(-max_accel, min(max_accel, dif_speed))
+            self.next_speed += dif_speed
+            # if with these speeds there is a collision in 3 seconds don't try and increase the average mean_speed
+            if (0 < gap + 3*(leader_speed - self.next_speed)) and np.random.rand()<self.AC:
+                self.next_speed += speed_push
+
+            
+        
 
     def update_state(self, dt):
         self.current_speed = self.next_speed
