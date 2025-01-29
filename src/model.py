@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from track_interface import Track
+from .track_interface import Track
 from itertools import chain
 
 
@@ -11,9 +11,9 @@ class Model(object):
         total_time: int = 2000,
         road_length: int = 2000,
         lane_count: int = 1,
-        central_control = False,
-        max_accel = 1,
-        speed_push = 0.5
+        central_control=False,
+        max_accel=1,
+        speed_push=0.5,
     ) -> None:
         """
         The parameters of the simulation model are:
@@ -28,16 +28,13 @@ class Model(object):
         self.lane_count = lane_count
         self.road_length_km = self.road_length / 1000
         self.density_values = np.linspace(0, 140, 10)
-        self.total_runs = (
-            20  # In the paper they also did 20 runs for each density
-        )
+        self.total_runs = 20  # In the paper they also did 20 runs for each density
         self.flow_results = [[] for _ in range(self.total_runs)]
         self.speed_results = [[] for _ in range(self.total_runs)]
 
         self.central_control = central_control
         self.max_accel = max_accel
         self.speed_push = speed_push
-
 
     def run(self, idx) -> None:
         """
@@ -47,22 +44,31 @@ class Model(object):
 
         for density in self.density_values:
             # N is amount of vehicles
-            track = Track(lane_count=self.lane_count, length=self.road_length, central_control=self.central_control, 
-                          max_accel=self.max_accel, speed_push=self.speed_push)
+            track = Track(
+                lane_count=self.lane_count,
+                length=self.road_length,
+                central_control=self.central_control,
+                max_accel=self.max_accel,
+                speed_push=self.speed_push,
+            )
             track.init_cars(density)
 
-            total_cars =  sum([len(lane) for lane in track.lanes_list])
+            total_cars = sum([len(lane) for lane in track.lanes_list])
             # prefered amount of cars per lane
-            prefered_per_lane = [total_cars//track.lanes_count for lane in range(len(track.lanes_list))]
-            for i in range(total_cars%track.lanes_count):
+            prefered_per_lane = [
+                total_cars // track.lanes_count for lane in range(len(track.lanes_list))
+            ]
+            for i in range(total_cars % track.lanes_count):
                 prefered_per_lane[i] += 1
 
-            total_crossings = 0  # count the total crossings at a fixed reference point in time
+            total_crossings = (
+                0  # count the total crossings at a fixed reference point in time
+            )
 
             for _ in range(int(self.total_time / self.dt)):
                 if self.lane_count > 1:
                     # We don't need to run code that won't do anything
-                    if (self.central_control):
+                    if self.central_control:
                         track.lane_switches_central(prefered_per_lane)
                     else:
                         track.lane_switches()
@@ -78,10 +84,7 @@ class Model(object):
 
             flow = total_crossings
             mean_speed = np.mean(
-                [
-                    veh.current_speed
-                    for veh in chain(*track.lanes_list)
-                ]
+                [veh.current_speed for veh in chain(*track.lanes_list)]
             )
 
             self.flow_results[idx].append(flow)
@@ -99,7 +102,6 @@ class Model(object):
                 print("run " + idx)
                 self.run(idx)
 
-
                 # Scatter plot for current run
                 plt.scatter(
                     self.density_values,
@@ -114,9 +116,7 @@ class Model(object):
                 if isinstance(self.flow_results[0], list)
                 else self.flow_results
             )
-            plt.plot(
-                self.density_values, avg_flow, color="black", label="Mean Flow"
-            )
+            plt.plot(self.density_values, avg_flow, color="black", label="Mean Flow")
             plt.xlabel("Density (veh/km)")
             plt.ylabel("Flow (veh/h)")
             plt.title("The relationship between flow and density")
@@ -124,7 +124,7 @@ class Model(object):
 
         elif stat == "velocity":
             for idx in range(self.total_runs):  # Run the simulation 20 times
-                print(idx)                
+                print(idx)
                 self.run(idx)
 
                 # Scatter plot for current run
