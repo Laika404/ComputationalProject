@@ -1,10 +1,18 @@
 import numpy as np
-from Agent import VehicleAgent
+from .Agent import VehicleAgent
 
 
 class Track:
 
-    def __init__(self, lane_count=2, length=2000, dt=1.0, central_control=False, max_accel=1, speed_push=0.5):
+    def __init__(
+        self,
+        lane_count=2,
+        length=2000,
+        dt=1.0,
+        central_control=False,
+        max_accel=1,
+        speed_push=0.5,
+    ):
         self.lanes_count = lane_count
         # Rightmost lane has index 0 and is the slow lane.
         self.lanes_list = [[] for _ in range(lane_count)]
@@ -21,14 +29,12 @@ class Track:
         if equal_lanes:
             split_points = np.linspace(0, N_cars, self.lanes_count + 1)[1:-1]
         else:
-            split_points = np.sort(
-                np.random.uniform(0, N_cars, self.lanes_count - 1)
-            )
+            split_points = np.sort(np.random.uniform(0, N_cars, self.lanes_count - 1))
         try:
             split_points = [int(split_points)]
         except:
             split_points = split_points.astype(int)
-        
+
         split_points = list(split_points)
         split_points.append(N_cars)
 
@@ -40,17 +46,14 @@ class Track:
             lane += 1
 
     def populate_lane(self, N):
-        initial_positions = np.sort(
-            np.random.uniform(0, self.length - (N * 5), N)
-        )
+        initial_positions = np.sort(np.random.uniform(0, self.length - (N * 5), N))
         initial_positions += (
             np.arange(N) * 5
         )  # Ensure minimum gaps of 5m by adding vehicle length
 
         initial_speeds = np.random.uniform(0, 35, N)
         vehicle_list = [
-            VehicleAgent(initial_positions[i], initial_speeds[i])
-            for i in range(N)
+            VehicleAgent(initial_positions[i], initial_speeds[i]) for i in range(N)
         ]
         return vehicle_list
 
@@ -64,14 +67,14 @@ class Track:
                 right = sides[i - 1]
                 count = vehicle.lane_switch(front, left, right, self.length)
                 self.switch_lane(i, vehicle.position, count)
-    
+
     def can_switch_central(self, vehicle: VehicleAgent, lane):
-            front = self.car_in_front(lane, vehicle.position)
-            sides = self.closest_cars_sides(lane, vehicle.position)
-            left = sides[lane+1]
-            right = sides[lane-1]
-            return vehicle.can_switch_lanes(left, right)
-    
+        front = self.car_in_front(lane, vehicle.position)
+        sides = self.closest_cars_sides(lane, vehicle.position)
+        left = sides[lane + 1]
+        right = sides[lane - 1]
+        return vehicle.can_switch_lanes(left, right)
+
     def lane_switches_central(self, prefered_per_lane):
         for lane_i in range(self.lanes_count):
             # sort every lane
@@ -81,24 +84,28 @@ class Track:
             for veh in self.lanes_list[lane_i]:
                 if lane_count > prefered_per_lane[lane_i]:
                     switch_posible = self.can_switch_central(veh, lane_i)
-                    if (any(switch_posible)):
+                    if any(switch_posible):
                         choice = -1
-                        if (all(switch_posible)):
-                            choice = np.random.randint(0,2)
+                        if all(switch_posible):
+                            choice = np.random.randint(0, 2)
                         elif switch_posible[0]:
                             choice = 0
                         else:
                             choice = 1
-                        self.switch_lane(lane_i, veh.position, int(choice==0) - int(choice==1))
+                        self.switch_lane(
+                            lane_i, veh.position, int(choice == 0) - int(choice == 1)
+                        )
                 else:
                     break
-    
+
     def calculate_next_state(self):
         for i, lane in enumerate(self.lanes_list):
             lane.sort()
-            if (self.central_control):
+            if self.central_control:
                 try:
-                    mean_speed_lane = sum([veh.current_speed for veh in lane])/len(lane)
+                    mean_speed_lane = sum([veh.current_speed for veh in lane]) / len(
+                        lane
+                    )
                 except ZeroDivisionError:
                     mean_speed_lane = None
             else:
@@ -115,7 +122,7 @@ class Track:
                         self.dt,
                         mean_speed_lane,
                         self.max_accel,
-                        self.speed_push
+                        self.speed_push,
                     )
                 else:
                     vehicle.calculate_next_state(
@@ -125,7 +132,7 @@ class Track:
                         self.dt,
                         mean_speed_lane,
                         self.max_accel,
-                        self.speed_push
+                        self.speed_push,
                     )
 
     def update_state(self):
