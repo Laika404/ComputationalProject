@@ -42,8 +42,19 @@ class VehicleAgent(object):
         self.acceleration = 0
         self.AC = AC
 
+        # used to save data
+        self.speed_list = [0]
+        self.position_list = [0]
+        self.lane_list = [0]
+
     def __lt__(self, other):
         return self.position < other.position
+
+    def reset_data(self):
+        self.speed_list = [0]
+        self.position_list = [0]
+        self.lane_list = [0]
+        pass
 
     def compute_decision(self, gap, leader_speed, leader_acceleration):
         """
@@ -292,6 +303,11 @@ class VehicleAgent(object):
             ) and np.random.rand() < self.AC:
                 self.next_speed += speed_push
 
-    def update_state(self, dt):
+    def update_state(self, dt, lane):
         self.current_speed = self.next_speed
         self.position += self.current_speed * dt
+
+        # updata data
+        self.speed_list.append(self.current_speed)
+        self.position_list.append(self.position)
+        self.lane_list.append(lane)
