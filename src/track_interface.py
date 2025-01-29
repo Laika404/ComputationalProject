@@ -136,9 +136,9 @@ class Track:
                     )
 
     def update_state(self):
-        for lane in self.lanes_list:
+        for lane_numb, lane in enumerate(self.lanes_list):
             for vehicle in lane:
-                vehicle.update_state(self.dt)
+                vehicle.update_state(self.dt, lane_numb)
 
     def switch_lane(self, lane, position, count=0):
         """
