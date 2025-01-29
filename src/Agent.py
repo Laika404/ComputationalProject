@@ -14,7 +14,7 @@ class VehicleAgent(object):
         a_max=6.04,
         b=0.2,
         TP=1.2,
-        AC = 0.5
+        AC=0.5,
     ):
         """
         The parameters of the vehicle agent are:
@@ -166,8 +166,10 @@ class VehicleAgent(object):
 
         car_front, car_behind = cars
         if car_front == car_behind:
-            return self.position < car_front.position - car_front.length or \
-                    self.position - self.length > car_front.position
+            return (
+                self.position < car_front.position - car_front.length
+                or self.position - self.length > car_front.position
+            )
         if self.position > car_front.position - car_front.length:
             return False
         elif self.position - self.length < car_behind.position:
@@ -181,13 +183,9 @@ class VehicleAgent(object):
             self.can_switch_lane(cars_right),
         )
 
-    def greedy_lane_switch(
-        self, car_front, cars_left, cars_right, road_length
-    ):
+    def greedy_lane_switch(self, car_front, cars_left, cars_right, road_length):
         """Greedily switch to any lane if current lane has a slow leader."""
-        can_go_left, can_go_right = self.can_switch_lanes(
-            cars_left, cars_right
-        )
+        can_go_left, can_go_right = self.can_switch_lanes(cars_left, cars_right)
         if can_go_left == can_go_right == False:
             return 0
 
@@ -204,13 +202,9 @@ class VehicleAgent(object):
                 return 0
         return 0
 
-    def traditional_lane_switch(
-        self, car_front, cars_left, cars_right, road_length
-    ):
+    def traditional_lane_switch(self, car_front, cars_left, cars_right, road_length):
         """Switch lanes by using fast (left) lanes and slow (right) lanes."""
-        can_go_left, can_go_right = self.can_switch_lanes(
-            cars_left, cars_right
-        )
+        can_go_left, can_go_right = self.can_switch_lanes(cars_left, cars_right)
         if can_go_left == can_go_right == False:
             return 0
 
@@ -252,14 +246,20 @@ class VehicleAgent(object):
         reaction_time = 1
         v_safe = leader_speed + (
             (gap - leader_speed * reaction_time)
-            / (
-                reaction_time
-                + ((self.current_speed + leader_speed) / (2 * self.a_max))
-            )
+            / (reaction_time + ((self.current_speed + leader_speed) / (2 * self.a_max)))
         )
         return v_safe
 
-    def calculate_next_state(self, gap, leader_speed, leader_acceleration, dt, mean_speed = None, max_accel=1, speed_push = 0.5):
+    def calculate_next_state(
+        self,
+        gap,
+        leader_speed,
+        leader_acceleration,
+        dt,
+        mean_speed=None,
+        max_accel=1,
+        speed_push=0.5,
+    ):
         """
         Updates the state of the follower (current vehicle), which
         depends on the speed and acceleration of the leader (car in front),
@@ -275,23 +275,22 @@ class VehicleAgent(object):
         )
         eta = None
         # eta is only random when no centralized control
-        if (mean_speed == None):
+        if mean_speed == None:
             eta = np.random.rand()
         else:
             eta = 0.5
-        
+
         self.next_speed = max(0, v_ideal - self.b * eta)
-        if (mean_speed != None):
+        if mean_speed != None:
             dif_speed = mean_speed - self.next_speed
             # normalized dif_speed
             dif_speed = max(-max_accel, min(max_accel, dif_speed))
             self.next_speed += dif_speed
             # if with these speeds there is a collision in 3 seconds don't try and increase the average mean_speed
-            if (0 < gap + 3*(leader_speed - self.next_speed)) and np.random.rand()<self.AC:
+            if (
+                0 < gap + 3 * (leader_speed - self.next_speed)
+            ) and np.random.rand() < self.AC:
                 self.next_speed += speed_push
-
-            
-        
 
     def update_state(self, dt):
         self.current_speed = self.next_speed
