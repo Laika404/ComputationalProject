@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 from .track_interface import Track
 from itertools import chain
+import csv
 
 
 class Model(object):
@@ -36,7 +37,7 @@ class Model(object):
         self.max_accel = max_accel
         self.speed_push = speed_push
 
-    def run(self, idx) -> None:
+    def run(self, idx, export_data=False) -> None:
         """
         A single run of the simulation. In total, we will perform 20 runs,
         which is also done in the paper which we wanted to validate our model with.
@@ -64,8 +65,9 @@ class Model(object):
             total_crossings = (
                 0  # count the total crossings at a fixed reference point in time
             )
-
-            for _ in range(int(self.total_time / self.dt)):
+            time_data = []
+            for t in range(int(self.total_time / self.dt)):
+                time_data.append(t * self.dt)
                 if self.lane_count > 1:
                     # We don't need to run code that won't do anything
                     if self.central_control:
@@ -89,8 +91,41 @@ class Model(object):
 
             self.flow_results[idx].append(flow)
             self.speed_results[idx].append(mean_speed)
+            # per multiple runs only ones will the data be exported
+            if idx == 0 and export_data:
+                self.export_data(time_data, track.lanes_list, density=density)
 
-    def plot(self, stat: str = "position", out_file=None) -> None:
+    def export_data(self, time_data, lanes_list, density):
+        filename = "data_"
+        if self.central_control:
+            filename += "central_"
+        else:
+            filename += "individual_"
+
+        filename += str(len(lanes_list))
+        filename += "lane_density_"
+        filename += str(round(density))
+        filename += ".csv"
+
+        with open(filename, mode="w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(["id", "timestep", "alpha", "lane", "speed"])
+            car_id = 0
+            for lane in lanes_list:
+                for vehicle in lane:
+                    for i in range(len(time_data)):
+                        writer.writerow(
+                            [
+                                car_id,
+                                time_data[i],
+                                vehicle.position_list[i],
+                                vehicle.lane_list[i],
+                                vehicle.speed_list[i],
+                            ]
+                        )
+                    car_id += 1
+
+    def plot(self, stat: str = "position", export_data=False, out_file=None) -> None:
         """
         Make the plot, which is either a flow-density graph or mean-speed-density graph.
         If stat = position, then the plot is a flow-density graph. If stat = velocity
@@ -100,7 +135,9 @@ class Model(object):
         if stat == "position":
             for idx in range(self.total_runs):  # Run the simulation 20 times
                 print("run " + idx)
-                self.run(idx)
+                if idx == 1:
+                    break
+                self.run(idx, export_data=export_data)
 
                 # Scatter plot for current run
                 plt.scatter(
@@ -125,7 +162,7 @@ class Model(object):
         elif stat == "velocity":
             for idx in range(self.total_runs):  # Run the simulation 20 times
                 print(idx)
-                self.run(idx)
+                self.run(idx, export_data=export_data)
 
                 # Scatter plot for current run
                 plt.scatter(
@@ -163,5 +200,5 @@ class Model(object):
 
 if __name__ == "__main__":
     # when you run "python -m src.model" you land here: the simulation will run
-    model = Model(lane_count=2, central_control=True)
-    model.plot(stat="velocity")
+    model = Model(lane_count=2, central_control=False)
+    model.plot(stat="velocity", export_data=True)
