@@ -21,6 +21,11 @@ class Model(object):
         - dt: the timestep in each iteration of the simulation
         - total_time: the total duration of the simulation
         - road_length: the length of the single lane
+        - lane_count: The amount of lanes
+        - central_control: if the central control model is used
+        - mac_accel: the maximum acceleration to meet the mean speed of an agent
+        - speed_push: the maximum acceleration added to push the average of the mean speed
+
         """
 
         self.dt = dt
@@ -33,6 +38,7 @@ class Model(object):
         self.flow_results = [[] for _ in range(self.total_runs)]
         self.speed_results = [[] for _ in range(self.total_runs)]
 
+        # central control arguments
         self.central_control = central_control
         self.max_accel = max_accel
         self.speed_push = speed_push
@@ -54,6 +60,7 @@ class Model(object):
             )
             track.init_cars(density)
 
+            # USED FOR CENTRAL CONTROL ==============================================
             total_cars = sum([len(lane) for lane in track.lanes_list])
             # prefered amount of cars per lane
             prefered_per_lane = [
@@ -61,15 +68,15 @@ class Model(object):
             ]
             for i in range(total_cars % track.lanes_count):
                 prefered_per_lane[i] += 1
-
+            # ======================================================================
             total_crossings = (
                 0  # count the total crossings at a fixed reference point in time
             )
             time_data = []
             for t in range(int(self.total_time / self.dt)):
                 time_data.append(t * self.dt)
+                # We don't need to run code that won't do anything
                 if self.lane_count > 1:
-                    # We don't need to run code that won't do anything
                     if self.central_control:
                         track.lane_switches_central(prefered_per_lane)
                     else:
@@ -96,6 +103,8 @@ class Model(object):
                 self.export_data(time_data, track.lanes_list, density=density)
 
     def export_data(self, time_data, lanes_list, density):
+        """Exports the data of the position, speed, lane of every car in lanes_list into a csv file"""
+        # filename contains arguments of the simulation
         filename = "data_"
         if self.central_control:
             filename += "central_"
@@ -107,6 +116,7 @@ class Model(object):
         filename += str(round(density))
         filename += ".csv"
 
+        # write data to the file
         with open(filename, mode="w", newline="") as file:
             writer = csv.writer(file)
             writer.writerow(["id", "timestep", "alpha", "lane", "speed"])
@@ -130,6 +140,8 @@ class Model(object):
         Make the plot, which is either a flow-density graph or mean-speed-density graph.
         If stat = position, then the plot is a flow-density graph. If stat = velocity
         then the plot is a mean-speed-density graph.
+
+        Export data means data of every agent in ONLY the first run will be saved to csv files
         """
 
         if stat == "position":
