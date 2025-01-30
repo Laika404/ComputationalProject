@@ -37,7 +37,10 @@ OUTPUT:
 
 EXECUTION:
 ----------
+If you want to run the file from the src directory directly:
 - python3 circular_animation.py <data_file1.csv> <data_file2.csv> <output.gif>
+Or if you want to run it from the root directory as a module:
+- python3 -m src.circular_animation <data_file1.csv> <data_file2.csv> <output.gif>
 """
 
 import sys
