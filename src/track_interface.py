@@ -30,6 +30,7 @@ class Track:
             split_points = np.linspace(0, N_cars, self.lanes_count + 1)[1:-1]
         else:
             split_points = np.sort(np.random.uniform(0, N_cars, self.lanes_count - 1))
+        # different behaviour if split_points is an integer instead of a np array
         try:
             split_points = [int(split_points)]
         except:
@@ -68,6 +69,7 @@ class Track:
                 count = vehicle.lane_switch(front, left, right, self.length)
                 self.switch_lane(i, vehicle.position, count)
 
+    # function by central control which returns the lanes an agent can switch to in the current moemtn
     def can_switch_central(self, vehicle: VehicleAgent, lane):
         front = self.car_in_front(lane, vehicle.position)
         sides = self.closest_cars_sides(lane, vehicle.position)
@@ -102,6 +104,7 @@ class Track:
         for i, lane in enumerate(self.lanes_list):
             lane.sort()
             if self.central_control:
+                # edge case if there are no cars on the lane
                 try:
                     mean_speed_lane = sum([veh.current_speed for veh in lane]) / len(
                         lane
