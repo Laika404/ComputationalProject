@@ -42,7 +42,7 @@ class VehicleAgent(object):
         self.acceleration = 0
         self.AC = AC
 
-        # used to save data
+        # used to save data which can be exported
         self.speed_list = [0]
         self.position_list = [0]
         self.lane_list = [0]
@@ -51,6 +51,10 @@ class VehicleAgent(object):
         return self.position < other.position
 
     def reset_data(self):
+        """
+        Resets the data the Agent hold, can be used for example when resetting a simulation
+        with the same cars
+        """
         self.speed_list = [0]
         self.position_list = [0]
         self.lane_list = [0]
@@ -277,6 +281,8 @@ class VehicleAgent(object):
         and the gap between them.
 
         mean_spead = None means no centralized control
+        mac_accel = the maximum acceleration to meet the mean speed
+        speed_push = the maximum acceleration added to push the average on mean speed
         """
 
         self.compute_decision(gap, leader_speed, leader_acceleration)
@@ -292,6 +298,7 @@ class VehicleAgent(object):
             eta = 0.5
 
         self.next_speed = max(0, v_ideal - self.b * eta)
+        # if no central control
         if mean_speed != None:
             dif_speed = mean_speed - self.next_speed
             # normalized dif_speed
